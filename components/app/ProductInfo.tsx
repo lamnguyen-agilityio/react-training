@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AddToCartButton } from "@/components/app/AddToCartButton";
-import { AskAISimilarButton } from "@/components/app/AskAISimilarButton";
 import { StockBadge } from "@/components/app/StockBadge";
 import { formatPrice } from "@/lib/utils";
 import type { PRODUCT_BY_SLUG_QUERYResult } from "@/sanity.types";
@@ -51,7 +50,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
           image={imageUrl ?? undefined}
           stock={product.stock ?? 0}
         />
-        <AskAISimilarButton productName={product.name ?? "this product"} />
       </div>
 
       {/* Metadata */}

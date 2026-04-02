@@ -3,7 +3,6 @@
 import { Suspense, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useDocumentProjection, type DocumentHandle } from "@sanity/sdk-react";
 import {
   ArrowLeft,
   MapPin,
@@ -52,41 +51,42 @@ interface OrderDetailProjection {
   }>;
 }
 
-function OrderDetailContent({ handle }: { handle: DocumentHandle }) {
-  const { data } = useDocumentProjection<OrderDetailProjection>({
-    ...handle,
-    projection: `{
-      orderNumber,
-      email,
-      total,
-      status,
-      createdAt,
-      stripePaymentId,
-      address{
-        name,
-        line1,
-        line2,
-        city,
-        postcode,
-        country
-      },
-      items[]{
-        _key,
-        quantity,
-        priceAtPurchase,
-        product->{
-          _id,
-          name,
-          "slug": slug.current,
-          "image": images[0]{
-            asset->{
-              url
-            }
-          }
-        }
-      }
-    }`,
-  });
+function OrderDetailContent({ handle }: { handle: any }) {
+  // const { data } = useDocumentProjection<OrderDetailProjection>({
+  //   ...handle,
+  //   projection: `{
+  //     orderNumber,
+  //     email,
+  //     total,
+  //     status,
+  //     createdAt,
+  //     stripePaymentId,
+  //     address{
+  //       name,
+  //       line1,
+  //       line2,
+  //       city,
+  //       postcode,
+  //       country
+  //     },
+  //     items[]{
+  //       _key,
+  //       quantity,
+  //       priceAtPurchase,
+  //       product->{
+  //         _id,
+  //         name,
+  //         "slug": slug.current,
+  //         "image": images[0]{
+  //           asset->{
+  //             url
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }`,
+  // });
+  const data = "";
 
   if (!data) {
     return (
@@ -140,7 +140,7 @@ function OrderDetailContent({ handle }: { handle: DocumentHandle }) {
               </h2>
             </div>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {data.items?.map((item) => (
+              {data.items?.map((item: any) => (
                 <div
                   key={item._key}
                   className="flex gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4"
@@ -330,10 +330,11 @@ interface PageProps {
 export default function OrderDetailPage({ params }: PageProps) {
   const { id } = use(params);
 
-  const handle: DocumentHandle = {
-    documentId: id,
-    documentType: "order",
-  };
+  // const handle: DocumentHandle = {
+  //   documentId: id,
+  //   documentType: "order",
+  // };
+  const handle = "" as any;
 
   return (
     <div className="space-y-4 sm:space-y-6">

@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useDocuments } from "@sanity/sdk-react";
 import { ShoppingCart } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody } from "@/components/ui/table";
@@ -35,37 +34,37 @@ function OrderListContent({
   }
   const filter = filters.length > 0 ? filters.join(" && ") : undefined;
 
-  const {
-    data: orders,
-    hasMore,
-    loadMore,
-    isPending,
-  } = useDocuments({
-    documentType: "order",
-    filter,
-    orderings: [{ field: "_createdAt", direction: "desc" }],
-    batchSize: 20,
-  });
+  // const {
+  //   data: orders,
+  //   hasMore,
+  //   loadMore,
+  //   isPending,
+  // } = useDocuments({
+  //   documentType: "order",
+  //   filter,
+  //   orderings: [{ field: "_createdAt", direction: "desc" }],
+  //   batchSize: 20,
+  // });
 
-  if (!orders || orders.length === 0) {
-    const description = searchFilter
-      ? "Try adjusting your search terms."
-      : statusFilter === "all"
-        ? "Orders will appear here when customers make purchases."
-        : `No ${statusFilter} orders at the moment.`;
+  // if (!orders || orders.length === 0) {
+  //   const description = searchFilter
+  //     ? "Try adjusting your search terms."
+  //     : statusFilter === "all"
+  //       ? "Orders will appear here when customers make purchases."
+  //       : `No ${statusFilter} orders at the moment.`;
 
-    return (
-      <EmptyState
-        icon={ShoppingCart}
-        title="No orders found"
-        description={description}
-      />
-    );
-  }
+  //   return (
+  //     <EmptyState
+  //       icon={ShoppingCart}
+  //       title="No orders found"
+  //       description={description}
+  //     />
+  //   );
+  // }
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      {/*<div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <Table>
           <OrderTableHeader />
           <TableBody>
@@ -86,7 +85,7 @@ function OrderListContent({
             {isPending ? "Loading..." : "Load More"}
           </Button>
         </div>
-      )}
+      )}*/}
     </>
   );
 }

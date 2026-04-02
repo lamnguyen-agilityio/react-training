@@ -1,13 +1,4 @@
 import { Suspense } from "react";
-import { sanityFetch } from "@/sanity/lib/live";
-import {
-  FEATURED_PRODUCTS_QUERY,
-  FILTER_PRODUCTS_BY_NAME_QUERY,
-  FILTER_PRODUCTS_BY_PRICE_ASC_QUERY,
-  FILTER_PRODUCTS_BY_PRICE_DESC_QUERY,
-  FILTER_PRODUCTS_BY_RELEVANCE_QUERY,
-} from "@/lib/sanity/queries/products";
-import { ALL_CATEGORIES_QUERY } from "@/lib/sanity/queries/categories";
 import { ProductSection } from "@/components/app/ProductSection";
 import { CategoryTiles } from "@/components/app/CategoryTiles";
 import { FeaturedCarousel } from "@/components/app/FeaturedCarousel";
@@ -38,48 +29,9 @@ export default async function HomePage({ searchParams }: PageProps) {
   const sort = params.sort ?? "name";
   const inStock = params.inStock === "true";
 
-  // Select query based on sort parameter
-  const getQuery = () => {
-    // If searching and sort is relevance, use relevance query
-    if (searchQuery && sort === "relevance") {
-      return FILTER_PRODUCTS_BY_RELEVANCE_QUERY;
-    }
-
-    switch (sort) {
-      case "price_asc":
-        return FILTER_PRODUCTS_BY_PRICE_ASC_QUERY;
-      case "price_desc":
-        return FILTER_PRODUCTS_BY_PRICE_DESC_QUERY;
-      case "relevance":
-        return FILTER_PRODUCTS_BY_RELEVANCE_QUERY;
-      default:
-        return FILTER_PRODUCTS_BY_NAME_QUERY;
-    }
-  };
-
-  // Fetch products with filters (server-side via GROQ)
-  const { data: products } = await sanityFetch({
-    query: getQuery(),
-    params: {
-      searchQuery,
-      categorySlug,
-      color,
-      material,
-      minPrice,
-      maxPrice,
-      inStock,
-    },
-  });
-
-  // Fetch categories for filter sidebar
-  const { data: categories } = await sanityFetch({
-    query: ALL_CATEGORIES_QUERY,
-  });
-
-  // Fetch featured products for carousel
-  const { data: featuredProducts } = await sanityFetch({
-    query: FEATURED_PRODUCTS_QUERY,
-  });
+  const products = [] as any;
+  const categories = [] as any;
+  const featuredProducts = [] as any;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">

@@ -3,11 +3,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  useDocuments,
-  useDocumentProjection,
-  type DocumentHandle,
-} from "@sanity/sdk-react";
 import { AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -22,30 +17,30 @@ interface ProductProjection {
   } | null;
 }
 
-function LowStockProductRow(handle: DocumentHandle) {
-  const { data } = useDocumentProjection<ProductProjection>({
-    ...handle,
-    projection: `{
-      name,
-      stock,
-      "image": images[0]{
-        asset->{
-          url
-        }
-      }
-    }`,
-  });
+function LowStockProductRow(handle: any) {
+  // const { data } = useDocumentProjection<ProductProjection>({
+  //   ...handle,
+  //   projection: `{
+  //     name,
+  //     stock,
+  //     "image": images[0]{
+  //       asset->{
+  //         url
+  //       }
+  //     }
+  //   }`,
+  // });
 
-  if (!data) return null;
+  // if (!data) return null;
 
-  const isOutOfStock = data.stock === 0;
+  // const isOutOfStock = data.stock === 0;
 
   return (
     <Link
       href={`/admin/inventory/${handle.documentId}`}
       className="flex items-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50 p-3 transition-colors hover:border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
     >
-      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-700">
+      {/*<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-700">
         {data.image?.asset?.url ? (
           <Image
             src={data.image.asset.url}
@@ -70,7 +65,7 @@ function LowStockProductRow(handle: DocumentHandle) {
         className="shrink-0"
       >
         {isOutOfStock ? "Out of stock" : `${data.stock} left`}
-      </Badge>
+      </Badge>*/}
     </Link>
   );
 }
@@ -87,29 +82,29 @@ function LowStockProductRowSkeleton() {
 
 function LowStockAlertContent() {
   // Fetch products with low stock (stock <= 5)
-  const { data: lowStockProducts } = useDocuments({
-    documentType: "product",
-    filter: "stock <= 5",
-    orderings: [{ field: "stock", direction: "asc" }],
-    batchSize: 10,
-  });
+  // const { data: lowStockProducts } = useDocuments({
+  //   documentType: "product",
+  //   filter: "stock <= 5",
+  //   orderings: [{ field: "stock", direction: "asc" }],
+  //   batchSize: 10,
+  // });
 
-  if (!lowStockProducts || lowStockProducts.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <span className="text-2xl">✓</span>
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          All products are well stocked!
-        </p>
-      </div>
-    );
-  }
+  // if (!lowStockProducts || lowStockProducts.length === 0) {
+  //   return (
+  //     <div className="flex flex-col items-center justify-center py-8 text-center">
+  //       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+  //         <span className="text-2xl">✓</span>
+  //       </div>
+  //       <p className="text-sm text-zinc-500 dark:text-zinc-400">
+  //         All products are well stocked!
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-2">
-      {lowStockProducts.slice(0, 5).map((handle) => (
+      {/*{lowStockProducts.slice(0, 5).map((handle) => (
         <Suspense
           key={handle.documentId}
           fallback={<LowStockProductRowSkeleton />}
@@ -124,7 +119,7 @@ function LowStockAlertContent() {
         >
           View all {lowStockProducts.length} low stock items →
         </Link>
-      )}
+      )}*/}
     </div>
   );
 }

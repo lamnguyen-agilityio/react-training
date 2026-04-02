@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { client } from "@/sanity/lib/client";
-import { PRODUCTS_BY_IDS_QUERY } from "@/lib/sanity/queries/products";
 import type { CartItem } from "@/lib/store/cart-store";
 
 export interface StockInfo {
@@ -33,7 +31,7 @@ export function useCartStock(items: CartItem[]): UseCartStockReturn {
   // Memoize product IDs to use as stable dependency
   const productIds = useMemo(
     () => items.map((item) => item.productId),
-    [items]
+    [items],
   );
 
   const fetchStock = useCallback(async () => {
@@ -44,34 +42,34 @@ export function useCartStock(items: CartItem[]): UseCartStockReturn {
 
     setIsLoading(true);
 
-    try {
-      const products = await client.fetch(PRODUCTS_BY_IDS_QUERY, {
-        ids: productIds,
-      });
+    // try {
+    //   const products = await client.fetch(PRODUCTS_BY_IDS_QUERY, {
+    //     ids: productIds,
+    //   });
 
-      const newStockMap = new Map<string, StockInfo>();
+    //   const newStockMap = new Map<string, StockInfo>();
 
-      for (const item of items) {
-        const product = products.find(
-          (p: { _id: string }) => p._id === item.productId
-        );
-        const currentStock = product?.stock ?? 0;
+    //   for (const item of items) {
+    //     const product = products.find(
+    //       (p: { _id: string }) => p._id === item.productId
+    //     );
+    //     const currentStock = product?.stock ?? 0;
 
-        newStockMap.set(item.productId, {
-          productId: item.productId,
-          currentStock,
-          isOutOfStock: currentStock === 0,
-          exceedsStock: item.quantity > currentStock,
-          availableQuantity: Math.min(item.quantity, currentStock),
-        });
-      }
+    //     newStockMap.set(item.productId, {
+    //       productId: item.productId,
+    //       currentStock,
+    //       isOutOfStock: currentStock === 0,
+    //       exceedsStock: item.quantity > currentStock,
+    //       availableQuantity: Math.min(item.quantity, currentStock),
+    //     });
+    //   }
 
-      setStockMap(newStockMap);
-    } catch (error) {
-      console.error("Failed to fetch stock:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    //   setStockMap(newStockMap);
+    // } catch (error) {
+    //   console.error("Failed to fetch stock:", error);
+    // } finally {
+    //   setIsLoading(false);
+    // }
   }, [items, productIds]);
 
   useEffect(() => {
@@ -79,7 +77,7 @@ export function useCartStock(items: CartItem[]): UseCartStockReturn {
   }, [fetchStock]);
 
   const hasStockIssues = Array.from(stockMap.values()).some(
-    (info) => info.isOutOfStock || info.exceedsStock
+    (info) => info.isOutOfStock || info.exceedsStock,
   );
 
   return {

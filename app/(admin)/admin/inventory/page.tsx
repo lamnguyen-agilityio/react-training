@@ -2,12 +2,12 @@
 
 import { Suspense, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useDocuments,
-  useApplyDocumentActions,
-  createDocumentHandle,
-  createDocument,
-} from "@sanity/sdk-react";
+// import {
+//   useDocuments,
+//   useApplyDocumentActions,
+//   createDocumentHandle,
+//   createDocument,
+// } from "@sanity/sdk-react";
 import { Plus, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,20 +31,31 @@ function ProductListContent({
   onCreateProduct,
   isCreating,
 }: ProductListContentProps) {
+  // const {
+  //   data: products,
+  //   hasMore,
+  //   loadMore,
+  //   isPending,
+  // } = useDocuments({
+  //   documentType: "product",
+  //   filter,
+  //   orderings: [
+  //     { field: "stock", direction: "asc" },
+  //     { field: "name", direction: "asc" },
+  //   ],
+  //   batchSize: 20,
+  // });
   const {
     data: products,
     hasMore,
     loadMore,
     isPending,
-  } = useDocuments({
-    documentType: "product",
-    filter,
-    orderings: [
-      { field: "stock", direction: "asc" },
-      { field: "name", direction: "asc" },
-    ],
-    batchSize: 20,
-  });
+  } = {
+    data: [],
+    hasMore: false,
+    loadMore: () => {},
+    isPending: 20,
+  };
 
   if (!products || products.length === 0) {
     return (
@@ -76,9 +87,9 @@ function ProductListContent({
         <Table>
           <ProductTableHeader />
           <TableBody>
-            {products.map((handle) => (
+            {/*{products.map((handle) => (
               <ProductRow key={handle.documentId} {...handle} />
-            ))}
+            ))}*/}
           </TableBody>
         </Table>
       </div>
@@ -88,7 +99,7 @@ function ProductListContent({
           <Button
             variant="outline"
             onClick={() => loadMore()}
-            disabled={isPending}
+            // disabled={isPending}
           >
             {isPending ? "Loading..." : "Load More"}
           </Button>

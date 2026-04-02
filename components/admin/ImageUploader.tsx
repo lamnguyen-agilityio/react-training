@@ -3,12 +3,6 @@
 import { useState, useRef, Suspense } from "react";
 import Image from "next/image";
 import {
-  useDocument,
-  useEditDocument,
-  useClient,
-  type DocumentHandle,
-} from "@sanity/sdk-react";
-import {
   Upload,
   X,
   Loader2,
@@ -38,80 +32,80 @@ interface ImageWithUrl {
   } | null;
 }
 
-function ImageUploaderContent(handle: DocumentHandle) {
+function ImageUploaderContent(handle: any) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const client = useClient({ apiVersion: "2024-01-01" });
-  const { data: images } = useDocument({ ...handle, path: "images" });
-  const editImages = useEditDocument({ ...handle, path: "images" });
+  // const client = useClient({ apiVersion: "2024-01-01" });
+  // const { data: images } = useDocument({ ...handle, path: "images" });
+  // const editImages = useEditDocument({ ...handle, path: "images" });
 
-  const currentImages = (images as ImageWithUrl[] | null) ?? [];
+  // const currentImages = (images as ImageWithUrl[] | null) ?? [];
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = e.target.files;
+  //   if (!files || files.length === 0) return;
 
-    setIsUploading(true);
-    setUploadProgress(`Uploading ${files.length} image(s)...`);
+  //   setIsUploading(true);
+  //   setUploadProgress(`Uploading ${files.length} image(s)...`);
 
-    try {
-      const newImages: SanityImageAsset[] = [];
+  //   try {
+  //     const newImages: SanityImageAsset[] = [];
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
+  //     for (let i = 0; i < files.length; i++) {
+  //       const file = files[i];
+  //       setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
 
-        // Upload the asset to Sanity
-        const asset = await client.assets.upload("image", file, {
-          filename: file.name,
-        });
+  //       // Upload the asset to Sanity
+  //       const asset = await client.assets.upload("image", file, {
+  //         filename: file.name,
+  //       });
 
-        // Create the image object with a unique key
-        newImages.push({
-          _type: "image",
-          _key: crypto.randomUUID(),
-          asset: {
-            _type: "reference",
-            _ref: asset._id,
-          },
-        });
-      }
+  //       // Create the image object with a unique key
+  //       newImages.push({
+  //         _type: "image",
+  //         _key: crypto.randomUUID(),
+  //         asset: {
+  //           _type: "reference",
+  //           _ref: asset._id,
+  //         },
+  //       });
+  //     }
 
-      // Append new images to existing ones
-      const updatedImages = [...currentImages, ...newImages];
-      editImages(updatedImages);
+  //     // Append new images to existing ones
+  //     const updatedImages = [...currentImages, ...newImages];
+  //     editImages(updatedImages);
 
-      setUploadProgress(null);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      setUploadProgress("Upload failed. Please try again.");
-      setTimeout(() => setUploadProgress(null), 3000);
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
+  //     setUploadProgress(null);
+  //   } catch (error) {
+  //     console.error("Upload failed:", error);
+  //     setUploadProgress("Upload failed. Please try again.");
+  //     setTimeout(() => setUploadProgress(null), 3000);
+  //   } finally {
+  //     setIsUploading(false);
+  //     // Reset the file input
+  //     if (fileInputRef.current) {
+  //       fileInputRef.current.value = "";
+  //     }
+  //   }
+  // };
 
-  const handleRemoveImage = (keyToRemove: string) => {
-    const updatedImages = currentImages.filter(
-      (img) => img._key !== keyToRemove,
-    );
-    editImages(updatedImages.length > 0 ? updatedImages : null);
-  };
+  // const handleRemoveImage = (keyToRemove: string) => {
+  //   const updatedImages = currentImages.filter(
+  //     (img) => img._key !== keyToRemove,
+  //   );
+  //   editImages(updatedImages.length > 0 ? updatedImages : null);
+  // };
 
-  const handleMoveImage = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= currentImages.length) return;
+  // const handleMoveImage = (fromIndex: number, toIndex: number) => {
+  //   if (toIndex < 0 || toIndex >= currentImages.length) return;
 
-    const updatedImages = [...currentImages];
-    const [movedImage] = updatedImages.splice(fromIndex, 1);
-    updatedImages.splice(toIndex, 0, movedImage);
-    editImages(updatedImages);
-  };
+  //   const updatedImages = [...currentImages];
+  //   const [movedImage] = updatedImages.splice(fromIndex, 1);
+  //   updatedImages.splice(toIndex, 0, movedImage);
+  //   editImages(updatedImages);
+  // };
 
   return (
     <div className="space-y-4">
@@ -122,7 +116,7 @@ function ImageUploaderContent(handle: DocumentHandle) {
           type="file"
           accept="image/*"
           multiple
-          onChange={handleFileSelect}
+          // onChange={handleFileSelect}
           className="hidden"
           disabled={isUploading}
         />
@@ -148,7 +142,7 @@ function ImageUploaderContent(handle: DocumentHandle) {
       </div>
 
       {/* Image Grid */}
-      {currentImages.length > 0 ? (
+      {/*{currentImages.length > 0 ? (
         <div className="grid grid-cols-2 gap-3">
           {currentImages.map((image, index) => (
             <ImageThumbnail
@@ -174,13 +168,13 @@ function ImageUploaderContent(handle: DocumentHandle) {
             Click upload to add product images
           </p>
         </div>
-      )}
+      )}*/}
 
-      {currentImages.length > 0 && (
+      {/*{currentImages.length > 0 && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           First image is the main product image. Drag to reorder.
         </p>
-      )}
+      )}*/}
     </div>
   );
 }
@@ -300,7 +294,7 @@ function ImageUploaderSkeleton() {
   );
 }
 
-export function ImageUploader(props: DocumentHandle) {
+export function ImageUploader(props: any) {
   return (
     <Suspense fallback={<ImageUploaderSkeleton />}>
       <ImageUploaderContent {...props} />

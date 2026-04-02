@@ -2,12 +2,6 @@
 
 import { Suspense, use } from "react";
 import Link from "next/link";
-import {
-  useDocument,
-  useEditDocument,
-  useDocumentProjection,
-  type DocumentHandle,
-} from "@sanity/sdk-react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,88 +40,89 @@ const COLORS = [
 ];
 
 // Field editor components
-function NameEditor(handle: DocumentHandle) {
-  const { data: name } = useDocument({ ...handle, path: "name" });
-  const editName = useEditDocument({ ...handle, path: "name" });
+function NameEditor(handle: any) {
+  // const { data: name } = useDocument({ ...handle, path: "name" });
+  // const editName = useEditDocument({ ...handle, path: "name" });
 
   return (
     <Input
-      value={(name as string) ?? ""}
-      onChange={(e) => editName(e.target.value)}
+      // value={(name as string) ?? ""}
+      // onChange={(e) => editName(e.target.value)}
       placeholder="Product name"
     />
   );
 }
 
-function SlugEditor(handle: DocumentHandle) {
-  const { data: slug } = useDocument({ ...handle, path: "slug" });
-  const editSlug = useEditDocument({ ...handle, path: "slug" });
-  const slugValue = (slug as { current?: string })?.current ?? "";
+function SlugEditor(handle: any) {
+  // const { data: slug } = useDocument({ ...handle, path: "slug" });
+  // const editSlug = useEditDocument({ ...handle, path: "slug" });
+  // const slugValue = (slug as { current?: string })?.current ?? "";
 
   return (
-    <Input
-      value={slugValue}
-      onChange={(e) => editSlug({ _type: "slug", current: e.target.value })}
-      placeholder="product-slug"
-    />
+    // <Input
+    //   value={slugValue}
+    //   onChange={(e) => editSlug({ _type: "slug", current: e.target.value })}
+    //   placeholder="product-slug"
+    // />
+    <></>
   );
 }
 
-function DescriptionEditor(handle: DocumentHandle) {
-  const { data: description } = useDocument({ ...handle, path: "description" });
-  const editDescription = useEditDocument({ ...handle, path: "description" });
+function DescriptionEditor(handle: any) {
+  // const { data: description } = useDocument({ ...handle, path: "description" });
+  // const editDescription = useEditDocument({ ...handle, path: "description" });
 
   return (
     <Textarea
-      value={(description as string) ?? ""}
-      onChange={(e) => editDescription(e.target.value)}
+      // value={(description as string) ?? ""}
+      // onChange={(e) => editDescription(e.target.value)}
       placeholder="Product description..."
       rows={4}
     />
   );
 }
 
-function PriceEditor(handle: DocumentHandle) {
-  const { data: price } = useDocument({ ...handle, path: "price" });
-  const editPrice = useEditDocument({ ...handle, path: "price" });
+function PriceEditor(handle: any) {
+  // const { data: price } = useDocument({ ...handle, path: "price" });
+  // const editPrice = useEditDocument({ ...handle, path: "price" });
 
   return (
     <Input
       type="number"
       step="0.01"
       min="0"
-      value={(price as number) ?? ""}
+      // value={(price as number) ?? ""}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        editPrice(parseFloat(e.target.value) || 0)
+        // editPrice(parseFloat(e.target.value) || 0)
       }
       placeholder="0.00"
     />
   );
 }
 
-function StockEditor(handle: DocumentHandle) {
-  const { data: stock } = useDocument({ ...handle, path: "stock" });
-  const editStock = useEditDocument({ ...handle, path: "stock" });
+function StockEditor(handle: any) {
+  // const { data: stock } = useDocument({ ...handle, path: "stock" });
+  // const editStock = useEditDocument({ ...handle, path: "stock" });
 
   return (
     <Input
       type="number"
       min="0"
-      value={(stock as number) ?? 0}
-      onChange={(e) => editStock(parseInt(e.target.value) || 0)}
+      // value={(stock as number) ?? 0}
+      // onChange={(e) => editStock(parseInt(e.target.value) || 0)}
       placeholder="0"
     />
   );
 }
 
-function MaterialEditor(handle: DocumentHandle) {
-  const { data: material } = useDocument({ ...handle, path: "material" });
-  const editMaterial = useEditDocument({ ...handle, path: "material" });
+function MaterialEditor(handle: any) {
+  // const { data: material } = useDocument({ ...handle, path: "material" });
+  // const editMaterial = useEditDocument({ ...handle, path: "material" });
 
   return (
     <Select
-      value={(material as string) ?? ""}
-      onValueChange={(value) => editMaterial(value)}
+      // value={(material as string) ?? ""}
+      // onValueChange={(value) => editMaterial(value)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Select material" />
@@ -143,14 +138,14 @@ function MaterialEditor(handle: DocumentHandle) {
   );
 }
 
-function ColorEditor(handle: DocumentHandle) {
-  const { data: color } = useDocument({ ...handle, path: "color" });
-  const editColor = useEditDocument({ ...handle, path: "color" });
+function ColorEditor(handle: any) {
+  // const { data: color } = useDocument({ ...handle, path: "color" });
+  // const editColor = useEditDocument({ ...handle, path: "color" });
 
   return (
     <Select
-      value={(color as string) ?? ""}
-      onValueChange={(value) => editColor(value)}
+      // value={(color as string) ?? ""}
+      // onValueChange={(value) => editColor(value)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Select color" />
@@ -166,45 +161,45 @@ function ColorEditor(handle: DocumentHandle) {
   );
 }
 
-function DimensionsEditor(handle: DocumentHandle) {
-  const { data: dimensions } = useDocument({ ...handle, path: "dimensions" });
-  const editDimensions = useEditDocument({ ...handle, path: "dimensions" });
+function DimensionsEditor(handle: any) {
+  // const { data: dimensions } = useDocument({ ...handle, path: "dimensions" });
+  // const editDimensions = useEditDocument({ ...handle, path: "dimensions" });
 
   return (
     <Input
-      value={(dimensions as string) ?? ""}
-      onChange={(e) => editDimensions(e.target.value)}
+      // value={(dimensions as string) ?? ""}
+      // onChange={(e) => editDimensions(e.target.value)}
       placeholder='e.g., "120cm x 80cm x 75cm"'
     />
   );
 }
 
-function FeaturedEditor(handle: DocumentHandle) {
-  const { data: featured } = useDocument({ ...handle, path: "featured" });
-  const editFeatured = useEditDocument({ ...handle, path: "featured" });
+function FeaturedEditor(handle: any) {
+  // const { data: featured } = useDocument({ ...handle, path: "featured" });
+  // const editFeatured = useEditDocument({ ...handle, path: "featured" });
 
   return (
     <Switch
-      checked={(featured as boolean) ?? false}
-      onCheckedChange={(checked: boolean) => editFeatured(checked)}
+      // checked={(featured as boolean) ?? false}
+      // onCheckedChange={(checked: boolean) => editFeatured(checked)}
     />
   );
 }
 
-function AssemblyEditor(handle: DocumentHandle) {
-  const { data: assemblyRequired } = useDocument({
-    ...handle,
-    path: "assemblyRequired",
-  });
-  const editAssembly = useEditDocument({
-    ...handle,
-    path: "assemblyRequired",
-  });
+function AssemblyEditor(handle: any) {
+  // const { data: assemblyRequired } = useDocument({
+  //   ...handle,
+  //   path: "assemblyRequired",
+  // });
+  // const editAssembly = useEditDocument({
+  //   ...handle,
+  //   path: "assemblyRequired",
+  // });
 
   return (
     <Switch
-      checked={(assemblyRequired as boolean) ?? false}
-      onCheckedChange={(checked: boolean) => editAssembly(checked)}
+      // checked={(assemblyRequired as boolean) ?? false}
+      // onCheckedChange={(checked: boolean) => editAssembly(checked)}
     />
   );
 }
@@ -215,19 +210,20 @@ interface ProductSlugProjection {
   } | null;
 }
 
-function ProductStoreLink(handle: DocumentHandle) {
-  const { data } = useDocumentProjection<ProductSlugProjection>({
-    ...handle,
-    projection: `{ slug }`,
-  });
+function ProductStoreLink(handle: any) {
+  // const { data } = useDocumentProjection<ProductSlugProjection>({
+  //   ...handle,
+  //   projection: `{ slug }`,
+  // });
 
-  const slug = data?.slug?.current;
+  // const slug = data?.slug?.current;
 
-  if (!slug) return null;
+  // if (!slug) return null;
 
   return (
     <Link
-      href={`/products/${slug}`}
+      // href={`/products/${slug}`}
+      href=""
       target="_blank"
       className="flex items-center justify-center gap-1 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
     >
@@ -237,8 +233,9 @@ function ProductStoreLink(handle: DocumentHandle) {
   );
 }
 
-function ProductDetailContent({ handle }: { handle: DocumentHandle }) {
-  const { data: name } = useDocument({ ...handle, path: "name" });
+function ProductDetailContent({ handle }: { handle: any }) {
+  // const { data: name } = useDocument({ ...handle, path: "name" });
+  const name = "";
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -447,7 +444,7 @@ interface PageProps {
 export default function ProductDetailPage({ params }: PageProps) {
   const { id } = use(params);
 
-  const handle: DocumentHandle = {
+  const handle: any = {
     documentId: id,
     documentType: "product",
   };

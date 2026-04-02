@@ -11,7 +11,6 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { Providers } from "@/components/providers/Providers";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -38,7 +37,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <Providers>
+    <div>
       <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
         {/* Mobile Header */}
         <div className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900 lg:hidden">
@@ -158,7 +157,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           <div className="p-4 lg:p-8">{children}</div>
         </main>
       </div>
-    </Providers>
+    </div>
   );
 }
 

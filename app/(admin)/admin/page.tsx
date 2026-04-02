@@ -2,11 +2,6 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useApplyDocumentActions,
-  createDocumentHandle,
-  createDocument,
-} from "@sanity/sdk-react";
 import { Package, ShoppingCart, TrendingUp, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,17 +14,17 @@ import {
 export default function AdminDashboard() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const apply = useApplyDocumentActions();
+  // const apply = useApplyDocumentActions();
 
   const handleCreateProduct = () => {
-    startTransition(async () => {
-      const newDocHandle = createDocumentHandle({
-        documentId: crypto.randomUUID(),
-        documentType: "product",
-      });
-      await apply(createDocument(newDocHandle));
-      router.push(`/admin/inventory/${newDocHandle.documentId}`);
-    });
+    // startTransition(async () => {
+    //   const newDocHandle = createDocumentHandle({
+    //     documentId: crypto.randomUUID(),
+    //     documentType: "product",
+    //   });
+    //   await apply(createDocument(newDocHandle));
+    //   router.push(`/admin/inventory/${newDocHandle.documentId}`);
+    // });
   };
 
   return (

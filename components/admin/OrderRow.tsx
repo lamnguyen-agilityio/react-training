@@ -2,7 +2,6 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useDocumentProjection, type DocumentHandle } from "@sanity/sdk-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -153,7 +152,7 @@ function OrderRowSkeleton() {
   );
 }
 
-export function OrderRow(props: DocumentHandle) {
+export function OrderRow(props: any) {
   return (
     <Suspense fallback={<OrderRowSkeleton />}>
       <OrderRowContent {...props} />

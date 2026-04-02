@@ -3,11 +3,6 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useDocument,
-  useDocumentProjection,
-  type DocumentHandle,
-} from "@sanity/sdk-react";
 import { CircleAlert, ExternalLink, Star } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -35,39 +30,39 @@ interface ProductProjection {
   } | null;
 }
 
-function ProductRowContent(handle: DocumentHandle) {
-  const { data } = useDocumentProjection<ProductProjection>({
-    ...handle,
-    projection: `{
-      name,
-      "slug": slug.current,
-      stock,
-      price,
-      featured,
-      category->{
-        title
-      },
-      "image": images[0]{
-        asset->{
-          url
-        }
-      }
-    }`,
-  });
+function ProductRowContent(handle: any) {
+  // const { data } = useDocumentProjection<ProductProjection>({
+  //   ...handle,
+  //   projection: `{
+  //     name,
+  //     "slug": slug.current,
+  //     stock,
+  //     price,
+  //     featured,
+  //     category->{
+  //       title
+  //     },
+  //     "image": images[0]{
+  //       asset->{
+  //         url
+  //       }
+  //     }
+  //   }`,
+  // });
 
-  // Check if document is a draft (unpublished changes)
-  const { data: document } = useDocument(handle);
-  const isDraft = document?._id?.startsWith("drafts.");
+  // // Check if document is a draft (unpublished changes)
+  // const { data: document } = useDocument(handle);
+  // const isDraft = document?._id?.startsWith("drafts.");
 
-  if (!data) return null;
+  // if (!data) return null;
 
-  const lowStock = isLowStock(data.stock);
-  const outOfStock = isOutOfStock(data.stock);
+  // const lowStock = isLowStock(data.stock);
+  // const outOfStock = isOutOfStock(data.stock);
 
   return (
     <TableRow className="group">
       {/* Image - Desktop only */}
-      <TableCell className="hidden py-3 sm:table-cell">
+      {/*<TableCell className="hidden py-3 sm:table-cell">
         <div className="relative h-12 w-12 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
           {data.image?.asset?.url ? (
             <Image
@@ -83,7 +78,7 @@ function ProductRowContent(handle: DocumentHandle) {
             </div>
           )}
         </div>
-      </TableCell>
+      </TableCell>*/}
 
       {/* Name - Mobile: includes image, price, stock badges */}
       <TableCell className="py-3 sm:py-4">
@@ -92,7 +87,7 @@ function ProductRowContent(handle: DocumentHandle) {
           className="flex items-start gap-3 sm:block"
         >
           {/* Mobile image */}
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800 sm:hidden">
+          {/*<div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800 sm:hidden">
             {data.image?.asset?.url ? (
               <Image
                 src={data.image.asset.url}
@@ -106,9 +101,9 @@ function ProductRowContent(handle: DocumentHandle) {
                 ?
               </div>
             )}
-          </div>
+          </div>*/}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
+            {/*<div className="flex items-center gap-1.5">
               <span className="truncate font-medium text-zinc-900 group-hover:text-zinc-600 dark:text-zinc-100 dark:group-hover:text-zinc-300 sm:hover:text-zinc-600 sm:dark:hover:text-zinc-300">
                 {data.name || "Untitled Product"}
               </span>
@@ -129,8 +124,8 @@ function ProductRowContent(handle: DocumentHandle) {
                   <ExternalLink className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600" />
                 </button>
               )}
-            </div>
-            {isDraft && (
+            </div>*/}
+            {/*{isDraft && (
               <div className="mt-1 flex items-center gap-1 sm:hidden">
                 <Badge
                   variant="outline"
@@ -145,14 +140,14 @@ function ProductRowContent(handle: DocumentHandle) {
               <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
                 {data.category.title}
               </p>
-            )}
+            )}*/}
             {/* Mobile: show price and stock inline */}
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs sm:hidden">
               <span className="font-medium text-zinc-700 dark:text-zinc-300">
                 {formatPrice(data.price)}
               </span>
               <span className="text-zinc-300 dark:text-zinc-600">•</span>
-              <span className="text-zinc-500 dark:text-zinc-400">
+              {/*<span className="text-zinc-500 dark:text-zinc-400">
                 {data.stock} in stock
               </span>
               {outOfStock && (
@@ -167,7 +162,7 @@ function ProductRowContent(handle: DocumentHandle) {
                 >
                   Low
                 </Badge>
-              )}
+              )}*/}
             </div>
           </div>
         </Link>
@@ -186,7 +181,7 @@ function ProductRowContent(handle: DocumentHandle) {
           <Suspense fallback={<Skeleton className="h-8 w-20" />}>
             <StockInput {...handle} />
           </Suspense>
-          {outOfStock && (
+          {/*{outOfStock && (
             <Badge variant="destructive" className="text-xs">
               Out
             </Badge>
@@ -198,7 +193,7 @@ function ProductRowContent(handle: DocumentHandle) {
             >
               Low
             </Badge>
-          )}
+          )}*/}
         </div>
       </TableCell>
 
@@ -259,7 +254,7 @@ function ProductRowSkeleton() {
   );
 }
 
-export function ProductRow(props: DocumentHandle) {
+export function ProductRow(props: any) {
   return (
     <Suspense fallback={<ProductRowSkeleton />}>
       <ProductRowContent {...props} />

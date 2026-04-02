@@ -2,11 +2,6 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import {
-  useDocuments,
-  useDocumentProjection,
-  type DocumentHandle,
-} from "@sanity/sdk-react";
 import { ShoppingCart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -21,29 +16,29 @@ interface OrderProjection {
   createdAt: string;
 }
 
-function OrderRow(handle: DocumentHandle) {
-  const { data } = useDocumentProjection<OrderProjection>({
-    ...handle,
-    projection: `{
-      orderNumber,
-      email,
-      total,
-      status,
-      createdAt
-    }`,
-  });
+function OrderRow(handle: any) {
+  // const { data } = useDocumentProjection<OrderProjection>({
+  //   ...handle,
+  //   projection: `{
+  //     orderNumber,
+  //     email,
+  //     total,
+  //     status,
+  //     createdAt
+  //   }`,
+  // });
 
-  if (!data) return null;
+  // if (!data) return null;
 
-  const status = getOrderStatus(data.status);
-  const StatusIcon = status.icon;
+  // const status = getOrderStatus(data.status);
+  // const StatusIcon = status.icon;
 
   return (
     <Link
       href={`/admin/orders/${handle.documentId}`}
       className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50 p-3 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
     >
-      <div className="min-w-0 flex-1">
+      {/*<div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           #{formatOrderNumber(data.orderNumber)}
         </p>
@@ -59,7 +54,7 @@ function OrderRow(handle: DocumentHandle) {
           <StatusIcon className="h-3 w-3" />
           {status.label}
         </Badge>
-      </div>
+      </div>*/}
     </Link>
   );
 }
@@ -80,13 +75,13 @@ function OrderRowSkeleton() {
 }
 
 function RecentOrdersContent() {
-  const { data: orders } = useDocuments({
-    documentType: "order",
-    orderings: [{ field: "_createdAt", direction: "desc" }],
-    batchSize: 5,
-  });
+  // const { data: orders } = useDocuments({
+  //   documentType: "order",
+  //   orderings: [{ field: "_createdAt", direction: "desc" }],
+  //   batchSize: 5,
+  // });
 
-  if (!orders || orders.length === 0) {
+  // if (!orders || orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
@@ -100,13 +95,14 @@ function RecentOrdersContent() {
   }
 
   return (
-    <div className="space-y-2">
-      {orders.slice(0, 5).map((handle) => (
-        <Suspense key={handle.documentId} fallback={<OrderRowSkeleton />}>
-          <OrderRow {...handle} />
-        </Suspense>
-      ))}
-    </div>
+    // <div className="space-y-2">
+    //   {orders.slice(0, 5).map((handle) => (
+    //     <Suspense key={handle.documentId} fallback={<OrderRowSkeleton />}>
+    //       <OrderRow {...handle} />
+    //     </Suspense>
+    //   ))}
+    // </div>
+    <></>
   );
 }
 

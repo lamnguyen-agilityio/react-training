@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Grid2x2 } from "lucide-react";
-import type { ALL_CATEGORIES_QUERYResult } from "@/sanity.types";
+import { Category } from "@/lib/api";
 
 interface CategoryTilesProps {
-  categories: ALL_CATEGORIES_QUERYResult;
+  categories: Category[];
   activeCategory?: string;
 }
 
@@ -51,12 +51,13 @@ export function CategoryTiles({
         {/* Category tiles */}
         {categories.map((category) => {
           const isActive = activeCategory === category.slug;
-          const imageUrl = category.image?.asset?.url;
+          const imageUrl =
+            "https://bizweb.dktcdn.net/thumb/1024x1024/100/358/409/products/ghe-sofa-vang-da-ket-hop-ni-hien-dai-sf-005.jpg?v=1708220423300";
 
           return (
             <Link
-              key={category._id}
-              href={`/?category=${category.slug}`}
+              key={category.id}
+              href={`/?categorySlug=${category.slug}`}
               className={`group relative flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${
                 isActive
                   ? "ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-zinc-900"
@@ -68,7 +69,7 @@ export function CategoryTiles({
                 {imageUrl ? (
                   <Image
                     src={imageUrl}
-                    alt={category.title ?? "Category"}
+                    alt={category.name ?? "Category"}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                   />
@@ -82,7 +83,7 @@ export function CategoryTiles({
                 {/* Category name */}
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <span className="text-base font-semibold text-white drop-shadow-md">
-                    {category.title}
+                    {category.name}
                   </span>
                 </div>
 

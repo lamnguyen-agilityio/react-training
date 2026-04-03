@@ -14,25 +14,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { COLORS, MATERIALS, SORT_OPTIONS } from "@/lib/constants/filters";
-import type { ALL_CATEGORIES_QUERYResult } from "@/sanity.types";
+import { Category } from "@/lib/api";
 
 interface ProductFiltersProps {
-  categories: ALL_CATEGORIES_QUERYResult;
+  categories: Category[];
 }
 
 export function ProductFilters({ categories }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentSearch = searchParams.get("q") ?? "";
-  const currentCategory = searchParams.get("category") ?? "";
-  const currentColor = searchParams.get("color") ?? "";
-  const currentMaterial = searchParams.get("material") ?? "";
-  const currentSort = searchParams.get("sort") ?? "name";
+  const currentSearch = searchParams.get("search") ?? "";
+  const currentCategory = searchParams.get("categorySlug") ?? "";
+  // const currentSort = searchParams.get("sort") ?? "name";
   const urlMinPrice = Number(searchParams.get("minPrice")) || 0;
   const urlMaxPrice = Number(searchParams.get("maxPrice")) || 5000;
-  const currentInStock = searchParams.get("inStock") === "true";
 
   // Local state for price range (for smooth slider dragging)
   const [priceRange, setPriceRange] = useState<[number, number]>([
@@ -48,27 +44,15 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
   // Check which filters are active
   const isSearchActive = !!currentSearch;
   const isCategoryActive = !!currentCategory;
-  const isColorActive = !!currentColor;
-  const isMaterialActive = !!currentMaterial;
   const isPriceActive = urlMinPrice > 0 || urlMaxPrice < 5000;
-  const isInStockActive = currentInStock;
 
-  const hasActiveFilters =
-    isSearchActive ||
-    isCategoryActive ||
-    isColorActive ||
-    isMaterialActive ||
-    isPriceActive ||
-    isInStockActive;
+  const hasActiveFilters = isSearchActive || isCategoryActive || isPriceActive;
 
   // Count active filters
   const activeFilterCount = [
     isSearchActive,
     isCategoryActive,
-    isColorActive,
-    isMaterialActive,
     isPriceActive,
-    isInStockActive,
   ].filter(Boolean).length;
 
   const updateParams = useCallback(
@@ -92,7 +76,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const searchQuery = formData.get("search") as string;
-    updateParams({ q: searchQuery || null });
+    updateParams({ search: searchQuery || null });
   };
 
   const handleClearFilters = () => {
@@ -169,7 +153,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
 
       {/* Search */}
       <div>
-        <FilterLabel isActive={isSearchActive} filterKey="q">
+        <FilterLabel isActive={isSearchActive} filterKey="search">
           Search
         </FilterLabel>
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
@@ -191,13 +175,13 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
 
       {/* Category */}
       <div>
-        <FilterLabel isActive={isCategoryActive} filterKey="category">
+        <FilterLabel isActive={isCategoryActive} filterKey="categorySlug">
           Category
         </FilterLabel>
         <Select
           value={currentCategory || "all"}
           onValueChange={(value) =>
-            updateParams({ category: value === "all" ? null : value })
+            updateParams({ categorySlug: value === "all" ? null : value })
           }
         >
           <SelectTrigger
@@ -212,70 +196,8 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
             {categories.map((category) => (
-              <SelectItem key={category._id} value={category.slug ?? ""}>
-                {category.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Color */}
-      <div>
-        <FilterLabel isActive={isColorActive} filterKey="color">
-          Color
-        </FilterLabel>
-        <Select
-          value={currentColor || "all"}
-          onValueChange={(value) =>
-            updateParams({ color: value === "all" ? null : value })
-          }
-        >
-          <SelectTrigger
-            className={
-              isColorActive
-                ? "border-amber-500 ring-1 ring-amber-500 dark:border-amber-400 dark:ring-amber-400"
-                : ""
-            }
-          >
-            <SelectValue placeholder="All Colors" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Colors</SelectItem>
-            {COLORS.map((color) => (
-              <SelectItem key={color.value} value={color.value}>
-                {color.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Material */}
-      <div>
-        <FilterLabel isActive={isMaterialActive} filterKey="material">
-          Material
-        </FilterLabel>
-        <Select
-          value={currentMaterial || "all"}
-          onValueChange={(value) =>
-            updateParams({ material: value === "all" ? null : value })
-          }
-        >
-          <SelectTrigger
-            className={
-              isMaterialActive
-                ? "border-amber-500 ring-1 ring-amber-500 dark:border-amber-400 dark:ring-amber-400"
-                : ""
-            }
-          >
-            <SelectValue placeholder="All Materials" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Materials</SelectItem>
-            {MATERIALS.map((material) => (
-              <SelectItem key={material.value} value={material.value}>
-                {material.label}
+              <SelectItem key={category.id} value={category.slug ?? ""}>
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -303,36 +225,8 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
         />
       </div>
 
-      {/* In Stock Only */}
-      <div>
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={currentInStock}
-            onChange={(e) =>
-              updateParams({ inStock: e.target.checked ? "true" : null })
-            }
-            className="h-5 w-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800"
-          />
-          <span
-            className={`text-sm font-medium ${
-              isInStockActive
-                ? "text-zinc-900 dark:text-zinc-100"
-                : "text-zinc-700 dark:text-zinc-300"
-            }`}
-          >
-            Show only in-stock
-            {isInStockActive && (
-              <Badge className="ml-2 h-5 bg-amber-500 px-1.5 text-xs text-white hover:bg-amber-500">
-                Active
-              </Badge>
-            )}
-          </span>
-        </label>
-      </div>
-
       {/* Sort */}
-      <div>
+      {/*<div>
         <span className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Sort By
         </span>
@@ -351,7 +245,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div>*/}
     </div>
   );
 }

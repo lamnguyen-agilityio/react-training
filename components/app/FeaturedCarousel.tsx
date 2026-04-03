@@ -16,12 +16,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatPrice } from "@/lib/utils";
-import type { FEATURED_PRODUCTS_QUERYResult } from "@/sanity.types";
-
-type FeaturedProduct = FEATURED_PRODUCTS_QUERYResult[number];
+import type { Product } from "@/lib/api/types";
 
 interface FeaturedCarouselProps {
-  products: FEATURED_PRODUCTS_QUERYResult;
+  products: Product[];
 }
 
 export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
@@ -70,7 +68,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
       >
         <CarouselContent className="-ml-0">
           {products.map((product) => (
-            <CarouselItem key={product._id} className="pl-0">
+            <CarouselItem key={product.id} className="pl-0">
               <FeaturedSlide product={product} />
             </CarouselItem>
           ))}
@@ -105,11 +103,13 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 }
 
 interface FeaturedSlideProps {
-  product: FeaturedProduct;
+  product: Product;
 }
 
 function FeaturedSlide({ product }: FeaturedSlideProps) {
-  const mainImage = product.images?.[0]?.asset?.url;
+  const mainImage =
+    "https://zsofa.vn/wp-content/uploads/2025/07/sofa-361-1-1.jpg";
+  console.log("product", product);
 
   return (
     <div className="flex min-h-[400px] flex-col md:min-h-[450px] md:flex-row lg:min-h-[500px]">
@@ -142,7 +142,7 @@ function FeaturedSlide({ product }: FeaturedSlideProps) {
             variant="secondary"
             className="mb-4 w-fit bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
           >
-            {product.category.title}
+            {product.category.name}
           </Badge>
         )}
 

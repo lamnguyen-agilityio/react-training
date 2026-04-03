@@ -1,10 +1,10 @@
 import { PackageSearch } from "lucide-react";
 import { ProductCard } from "./ProductCard";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { FILTER_PRODUCTS_BY_NAME_QUERYResult } from "@/sanity.types";
+import { Product } from "@/lib/api";
 
 interface ProductGridProps {
-  products: FILTER_PRODUCTS_BY_NAME_QUERYResult;
+  products: Product[];
 }
 
 export function ProductGrid({ products }: ProductGridProps) {
@@ -25,7 +25,7 @@ export function ProductGrid({ products }: ProductGridProps) {
     <div className="@container">
       <div className="grid grid-cols-1 gap-6 @md:grid-cols-2 @xl:grid-cols-3 @6xl:grid-cols-4 @md:gap-8">
         {products.map((product) => (
-          <ProductCard key={product._id} product={product} />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>

@@ -3,35 +3,58 @@ import { ProductSection } from "@/components/app/ProductSection";
 import { CategoryTiles } from "@/components/app/CategoryTiles";
 import { FeaturedCarousel } from "@/components/app/FeaturedCarousel";
 import { FeaturedCarouselSkeleton } from "@/components/app/FeaturedCarouselSkeleton";
+import { getProducts, getCategories, ApiError } from "@/lib/api";
 
 interface PageProps {
   searchParams: Promise<{
-    q?: string;
-    category?: string;
-    color?: string;
-    material?: string;
+    search?: string;
+    categorySlug?: string;
     minPrice?: string;
     maxPrice?: string;
-    sort?: string;
-    inStock?: string;
+    // sort?: string;
   }>;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const searchQuery = params.q ?? "";
-  const categorySlug = params.category ?? "";
-  const color = params.color ?? "";
-  const material = params.material ?? "";
+  const searchQuery = params.search ?? "";
+  const categorySlug = params.categorySlug ?? "";
   const minPrice = Number(params.minPrice) || 0;
   const maxPrice = Number(params.maxPrice) || 0;
-  const sort = params.sort ?? "name";
-  const inStock = params.inStock === "true";
+  // const sort = params.sort ?? "name";
 
-  const products = [] as any;
-  const categories = [] as any;
-  const featuredProducts = [] as any;
+  // Fetch all data in parallel — allSettled so one failure won't break the page
+  const [productsResult, categoriesResult, featuredProductsResult] =
+    await Promise.allSettled([
+      getProducts({
+        search: searchQuery || undefined,
+        categorySlug: categorySlug || undefined,
+        minPrice: minPrice || undefined,
+        maxPrice: maxPrice || undefined,
+        // sort,
+      }),
+      getCategories(),
+      getProducts(),
+    ]);
+
+  const productsData =
+    productsResult.status === "fulfilled" ? productsResult.value : null;
+  const categories =
+    categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const featuredProducts =
+    featuredProductsResult.status === "fulfilled"
+      ? featuredProductsResult.value?.items?.slice(0, 5)
+      : [];
+  const products = productsData?.items ?? [];
+
+  if (productsResult.status === "rejected") {
+    const err = productsResult.reason;
+    console.error(
+      "[HomePage] Failed to fetch products:",
+      err instanceof ApiError ? `${err.status} ${err.message}` : err,
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">

@@ -15,7 +15,8 @@ export function formatPrice(
   amount: number | null | undefined,
   currency = "$",
 ): string {
-  return `${currency}${amount ?? 0}`;
+  if (typeof amount !== "number") return `${currency}${amount}`;
+  return `${currency}${amount.toFixed(2)}`;
 }
 
 type DateFormatOption = "short" | "long" | "datetime";

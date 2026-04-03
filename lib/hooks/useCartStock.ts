@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { CartItem } from "@/lib/store/cart-store";
-import { getProductBySlug } from "../api";
+import { getProductBySlug } from "@/lib/api";
 
 export interface StockInfo {
   productId: string;
@@ -21,67 +21,127 @@ interface UseCartStockReturn {
   refetch: () => void;
 }
 
-/**
- * Fetches current stock levels for cart items
- * Returns stock info map and loading state
- */
 export function useCartStock(items: CartItem[]): UseCartStockReturn {
   const [stockMap, setStockMap] = useState<StockMap>(new Map());
   const [isLoading, setIsLoading] = useState(false);
 
-  // Memoize product IDs to use as stable dependency
-  const slugs = useMemo(() => items.map((item) => item.slug), [items]);
+  const fetchedSlugsRef = useRef<Set<string>>(new Set());
 
-  const fetchStock = useCallback(async () => {
+  const fetchStock = useCallback(
+    async (slugsToFetch: string[], allItems: CartItem[]) => {
+      if (slugsToFetch.length === 0) return;
+
+      setIsLoading(true);
+      try {
+        const products = await Promise.all(
+          slugsToFetch.map((slug) => getProductBySlug(slug)),
+        );
+
+        setStockMap((prev) => {
+          const next = new Map(prev);
+          for (const product of products) {
+            const cartItem = allItems.find((i) => i.slug === product.slug);
+            if (!cartItem) continue;
+
+            next.set(cartItem.productId, {
+              productId: cartItem.productId,
+              currentStock: product.quantityInStock ?? 0,
+              isOutOfStock: (product.quantityInStock ?? 0) === 0,
+              exceedsStock: cartItem.quantity > (product.quantityInStock ?? 0),
+              availableQuantity: Math.min(
+                cartItem.quantity,
+                product.quantityInStock ?? 0,
+              ),
+            });
+
+            fetchedSlugsRef.current.add(product.slug);
+          }
+          return next;
+        });
+      } catch (error) {
+        console.error("[useCartStock] Failed to fetch stock:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const slugKey = items.map((i) => i.slug).join(",");
+
+  useEffect(() => {
     if (items.length === 0) {
       setStockMap(new Map());
+      fetchedSlugsRef.current.clear();
       return;
     }
 
-    setIsLoading(true);
+    const newSlugs = items
+      .map((i) => i.slug)
+      .filter((slug) => !fetchedSlugsRef.current.has(slug));
 
-    try {
-      const products = await Promise.all(
-        slugs.map((slug) => getProductBySlug(slug)),
-      );
-
-      const newStockMap = new Map<string, StockInfo>();
-
-      for (const item of items) {
-        const product = products.find(
-          (p: { slug: string }) => p.slug === item.slug,
-        );
-        const currentStock = product?.quantityInStock ?? 0;
-
-        newStockMap.set(item.productId, {
-          productId: item.productId,
-          currentStock,
-          isOutOfStock: currentStock === 0,
-          exceedsStock: item.quantity > currentStock,
-          availableQuantity: Math.min(item.quantity, currentStock),
-        });
-      }
-
-      setStockMap(newStockMap);
-    } catch (error) {
-      console.error("Failed to fetch stock:", error);
-    } finally {
-      setIsLoading(false);
+    if (newSlugs.length > 0) {
+      fetchStock(newSlugs, items);
     }
-  }, [items, slugs]);
+
+    const currentProductIds = new Set(items.map((i) => i.productId));
+    setStockMap((prev) => {
+      const removedKeys = [...prev.keys()].filter(
+        (id) => !currentProductIds.has(id),
+      );
+      if (removedKeys.length === 0) return prev;
+      const next = new Map(prev);
+      removedKeys.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, [slugKey, fetchStock]);
+
+  const quantityKey = items
+    .map((i) => `${i.productId}:${i.quantity}`)
+    .join(",");
 
   useEffect(() => {
-    fetchStock();
-  }, [fetchStock]);
+    if (stockMap.size === 0) return;
 
-  const hasStockIssues = Array.from(stockMap.values()).some(
+    setStockMap((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+
+      for (const item of items) {
+        const info = next.get(item.productId);
+        if (!info) continue;
+
+        const exceedsStock = item.quantity > info.currentStock;
+        const availableQuantity = Math.min(item.quantity, info.currentStock);
+
+        if (
+          info.exceedsStock !== exceedsStock ||
+          info.availableQuantity !== availableQuantity
+        ) {
+          next.set(item.productId, {
+            ...info,
+            exceedsStock,
+            availableQuantity,
+          });
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [quantityKey]);
+
+  const refetch = useCallback(() => {
+    fetchedSlugsRef.current.clear();
+    fetchStock(
+      items.map((i) => i.slug),
+      items,
+    );
+  }, [items, fetchStock]);
+
+  const hasStockIssues = [...stockMap.values()].some(
     (info) => info.isOutOfStock || info.exceedsStock,
   );
 
-  return {
-    stockMap,
-    isLoading,
-    hasStockIssues,
-    refetch: fetchStock,
-  };
+  return { stockMap, isLoading, hasStockIssues, refetch };
 }

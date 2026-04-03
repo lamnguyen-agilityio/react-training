@@ -13,6 +13,7 @@ import {
   selectActiveProvider,
   selectIsProviderReady,
 } from "@/lib/store/auth-provider.store";
+import { useCartStore } from "@/lib/store/cart-store-provider";
 
 import {
   SignedIn as ClerkSignedIn,
@@ -137,6 +138,7 @@ interface Auth0UserMenuProps {
 function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -192,6 +194,7 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
           <button
             onClick={() => {
               setOpen(false);
+              clearCart();
               onLogout();
             }}
             className="flex w-full items-center gap-3 border-t border-zinc-100 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"

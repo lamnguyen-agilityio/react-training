@@ -1,20 +1,11 @@
-/**
- * app/callback/page.tsx
- * ──────────────────────
- * Handles Auth0 Implicit Flow callback.
- *
- * Auth0 redirects here with a URL hash:
- *   SUCCESS: /callback#access_token=...&token_type=Bearer&expires_in=7200
- *   FAILURE: /callback#error=access_denied&error_description=...
- *
- * Hash fragments never reach the server — this MUST be a Client Component.
- */
-
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthUserStore } from "@/lib/store/auth-user.store";
+import { mergeCart, getUserCart } from "@/lib/api/cart";
+import type { CartItemResponse } from "@/lib/api/cart";
+import type { CartItem } from "@/lib/store/cart-store";
 
 // ── Hash parser ───────────────────────────────────────────────────────────────
 
@@ -57,12 +48,57 @@ function parseHash(hash: string): CallbackSuccess | CallbackError | null {
   return null;
 }
 
+function toCartItem(item: CartItemResponse): CartItem {
+  return {
+    productId: item.product.id,
+    name: item.product.name,
+    slug: item.product.slug,
+    price: parseFloat(String(item.product.price)),
+    image: item.product.image,
+    quantity: item.quantity,
+  };
+}
+
+async function syncCartAfterLogin(accessToken: string): Promise<void> {
+  const CART_STORAGE_KEY = "cart-storage";
+
+  let guestItems: CartItem[] = [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { state?: { items?: CartItem[] } };
+      guestItems = parsed.state?.items ?? [];
+    }
+  } catch {}
+
+  const response =
+    guestItems.length > 0
+      ? await mergeCart(
+          {
+            items: guestItems.map((i) => ({
+              productId: i.productId,
+              quantity: i.quantity,
+            })),
+          },
+          accessToken,
+        )
+      : await getUserCart(accessToken);
+
+  const mergedItems = response.items.map(toCartItem);
+  try {
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ state: { items: mergedItems }, version: 0 }),
+    );
+  } catch {}
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CallbackPage() {
   const router = useRouter();
   const { setTokenAndFetchUser, status, error } = useAuthUserStore();
-  const processed = useRef(false); // prevent StrictMode double-run
+  const processed = useRef(false);
 
   useEffect(() => {
     if (processed.current) return;
@@ -71,25 +107,25 @@ export default function CallbackPage() {
     const result = parseHash(window.location.hash);
 
     if (!result) {
-      // No hash params — probably a direct navigation, go home
       router.replace("/");
       return;
     }
 
     if (result.type === "error") {
-      // Store error in URL so the UI can display it, then redirect
       const msg = encodeURIComponent(result.errorDescription);
       router.replace(`/?auth_error=${msg}`);
       return;
     }
 
-    // Success — fetch user info then go home
-    setTokenAndFetchUser(result.accessToken).then(() => {
-      router.replace("/");
-    });
+    const { accessToken } = result;
+
+    setTokenAndFetchUser(accessToken)
+      .then(() => syncCartAfterLogin(accessToken))
+      .then(() => router.replace("/"))
+      .catch(() => router.replace("/"));
   }, [setTokenAndFetchUser, router]);
 
-  // ── Loading UI ───────────────────────────────────────────────────────────
+  // ── Error UI ──────────────────────────────────────────────────────────────
 
   if (status === "error") {
     return (
@@ -127,16 +163,17 @@ export default function CallbackPage() {
     );
   }
 
+  // ── Loading UI ────────────────────────────────────────────────────────────
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 dark:bg-zinc-900">
       <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        {/* Spinner */}
         <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-800 dark:border-zinc-700 dark:border-t-zinc-200" />
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           Signing you in…
         </p>
         <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-          Just a moment
+          Syncing your cart
         </p>
       </div>
     </div>

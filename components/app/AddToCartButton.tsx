@@ -45,6 +45,12 @@ export function AddToCartButton({
     }
   };
 
+  const handleIncrement = () => {
+    if (quantityInCart < stock) {
+      updateQuantity(productId, quantityInCart + 1);
+    }
+  };
+
   // Out of stock
   if (isOutOfStock) {
     return (
@@ -91,7 +97,7 @@ export function AddToCartButton({
         variant="ghost"
         size="icon"
         className="h-full flex-1 rounded-l-none disabled:opacity-20"
-        onClick={handleAdd}
+        onClick={handleIncrement}
         disabled={isAtMax}
       >
         <Plus className="h-4 w-4" />

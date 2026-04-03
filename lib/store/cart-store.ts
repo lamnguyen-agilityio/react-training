@@ -177,32 +177,52 @@ export const createCartStore = (initState: CartState = defaultInitState) => {
           }
 
           const previousItems = get().items;
-          set((state) => ({
-            items: state.items.map((i) =>
-              i.productId === productId ? { ...i, quantity } : i,
-            ),
-          }));
 
           const accessToken = useAuthUserStore.getState().accessToken;
+          if (!accessToken) {
+            set((state) => ({
+              items: state.items.map((i) =>
+                i.productId === productId ? { ...i, quantity } : i,
+              ),
+            }));
+            return;
+          }
 
-          if (accessToken) {
-            const cartItemId = previousItems.find(
+          try {
+            let cartItemId = previousItems.find(
               (i) => i.productId === productId,
             )?.cartItemId;
 
-            try {
-              if (cartItemId) {
-                const response = await updateCartItem(
-                  cartItemId,
-                  quantity,
-                  accessToken,
-                );
-                set((state) => ({ items: upsertItem(state.items, response) }));
+            if (!cartItemId) {
+              const cart = await getUserCart(accessToken);
+              const serverItem = cart.items.find(
+                (i) => i.product.id === productId,
+              );
+              cartItemId = serverItem?.id;
+
+              if (cart.items.length > 0) {
+                set({ items: cart.items.map(toCartItem) });
               }
-            } catch (err) {
-              console.error("[CartStore] updateQuantity API failed:", err);
-              set({ items: previousItems });
             }
+
+            if (!cartItemId) {
+              const response = await addCartItem(
+                { productId, quantity },
+                accessToken,
+              );
+              set((state) => ({ items: upsertItem(state.items, response) }));
+              return;
+            }
+
+            const response = await updateCartItem(
+              cartItemId,
+              quantity,
+              accessToken,
+            );
+            set((state) => ({ items: upsertItem(state.items, response) }));
+          } catch (err) {
+            console.error("[CartStore] updateQuantity API failed:", err);
+            set({ items: previousItems });
           }
         },
 

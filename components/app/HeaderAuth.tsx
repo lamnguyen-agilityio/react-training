@@ -196,6 +196,7 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
               setOpen(false);
               clearCart();
               onLogout();
+              window.location.href = "/";
             }}
             className="flex w-full items-center gap-3 border-t border-zinc-100 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >

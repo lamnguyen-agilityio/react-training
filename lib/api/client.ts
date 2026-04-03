@@ -1,38 +1,33 @@
 /**
  * lib/api/client.ts
- * ─────────────────
- * Core fetch wrapper used by every domain service.
- * Supports:
- *  - Public endpoints  (no token)
- *  - Protected endpoints (Bearer token)
- *  - Next.js 15+ fetch options (revalidate / tags)
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+interface NextOptions {
+  revalidate?: number | false;
+  tags?: string[];
+}
+
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
-  /** Pass accessToken for protected endpoints */
   accessToken?: string;
-  /** Next.js fetch cache options, e.g. { revalidate: 60 } or { tags: ["products"] } */
-  next?: NextFetchRequestConfig;
+  next?: NextOptions;
   signal?: AbortSignal;
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
 
-/** One entry in the `errors` array returned by the API */
 export interface ApiErrorDetail {
   errCode: string;
-  field?: string; // field that caused the error (optional)
-  message: string; // developer-facing detail
-  description?: string; // user-friendly guidance (optional)
+  field?: string;
+  message: string;
+  description?: string;
 }
 
-/** Shape of every non-2xx response body from the API */
 export interface ApiErrorResponse {
   statusCode: number;
   message: string;
@@ -50,16 +45,10 @@ export class ApiError extends Error {
     this.errors = response.errors ?? [];
   }
 
-  /** First error matching a specific field — useful for single-field validation */
   getFieldError(field: string): ApiErrorDetail | undefined {
     return this.errors.find((e) => e.field === field);
   }
 
-  /**
-   * All field errors as Record<fieldName, userMessage>.
-   * Prefers `description` (user-friendly) over `message` (dev-facing).
-   * Handy for react-hook-form's `setError` calls.
-   */
   getFieldErrors(): Record<string, string> {
     return Object.fromEntries(
       this.errors
@@ -68,7 +57,6 @@ export class ApiError extends Error {
     );
   }
 
-  /** True when the error list contains a specific errCode */
   hasCode(errCode: string): boolean {
     return this.errors.some((e) => e.errCode === errCode);
   }
@@ -96,23 +84,20 @@ export async function apiRequest<T>(
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal,
-    next, // Next.js-specific: drives ISR / on-demand revalidation
+    next,
   });
 
   if (!response.ok) {
     let errorBody: ApiErrorResponse;
-
     try {
       errorBody = (await response.json()) as ApiErrorResponse;
     } catch {
-      // Body is not JSON (e.g. 502 Bad Gateway from a proxy)
       errorBody = {
         statusCode: response.status,
         message: response.statusText || "An unexpected error occurred",
         errors: [],
       };
     }
-
     throw new ApiError(errorBody);
   }
 
@@ -124,17 +109,22 @@ export async function apiRequest<T>(
 // ── Convenience helpers ───────────────────────────────────────────────────────
 
 /** Public GET — no auth */
-export const publicGet = <T>(
-  path: string,
-  next?: NextFetchRequestConfig,
-): Promise<T> => apiRequest<T>(path, { next });
+export const publicGet = <T>(path: string, next?: NextOptions): Promise<T> =>
+  apiRequest<T>(path, { next });
 
-/** Authenticated GET */
+/** Authenticated GET — Server Components / Route Handlers */
 export const privateGet = <T>(
   path: string,
   accessToken: string,
-  next?: NextFetchRequestConfig,
+  next?: NextOptions,
 ): Promise<T> => apiRequest<T>(path, { accessToken, next });
+
+/** Authenticated fetch — flexible method, used by client-side auth flows */
+export const authFetch = <T>(
+  path: string,
+  accessToken: string,
+  options?: Omit<RequestOptions, "accessToken">,
+): Promise<T> => apiRequest<T>(path, { ...options, accessToken });
 
 /** Authenticated POST */
 export const privatePost = <T>(

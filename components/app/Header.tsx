@@ -1,10 +1,14 @@
+/**
+ * components/app/Header.tsx
+ */
+
 "use client";
 
 import Link from "next/link";
-import { Package, ShoppingBag, Sparkles, User } from "lucide-react";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartActions, useTotalItems } from "@/lib/store/cart-store-provider";
+import { HeaderAuth } from "./HeaderAuth";
 
 export function Header() {
   const { openCart } = useCartActions();
@@ -22,17 +26,7 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* My Orders - Only when signed in */}
-          <SignedIn>
-            <Button asChild>
-              <Link href="/orders" className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                <span className="text-sm font-medium">My Orders</span>
-              </Link>
-            </Button>
-          </SignedIn>
-
-          {/* Cart Button */}
+          {/* Cart */}
           <Button
             variant="ghost"
             size="icon"
@@ -48,33 +42,8 @@ export function Header() {
             <span className="sr-only">Open cart ({totalItems} items)</span>
           </Button>
 
-          {/* User */}
-          <SignedIn>
-            <UserButton
-              afterSwitchSessionUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "h-9 w-9",
-                },
-              }}
-            >
-              <UserButton.MenuItems>
-                <UserButton.Link
-                  label="My Orders"
-                  labelIcon={<Package className="h-4 w-4" />}
-                  href="/orders"
-                />
-              </UserButton.MenuItems>
-            </UserButton>
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-                <span className="sr-only">Sign in</span>
-              </Button>
-            </SignInButton>
-          </SignedOut>
+          {/* Auth — provider-aware (Clerk or Auth0) */}
+          <HeaderAuth />
         </div>
       </div>
     </header>

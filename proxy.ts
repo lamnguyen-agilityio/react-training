@@ -25,8 +25,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (provider === "auth0") {
     if (isProtectedRoute(req) && !isAuth0LoggedIn(req)) {
       const url = req.nextUrl.clone();
-      url.pathname = "/";
-      url.searchParams.set("auth_error", "Please sign in to continue");
+      url.href = process.env.NEXT_PUBLIC_AUTH0_GOOGLE_LOGIN_URL!;
       return NextResponse.redirect(url);
     }
     return NextResponse.next();

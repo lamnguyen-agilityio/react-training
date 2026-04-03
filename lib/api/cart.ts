@@ -54,7 +54,30 @@ export async function addCartItem(
   });
 }
 
-/** DELETE /carts/items/:id — remove item, returns 204 */
+export interface OrderItem {
+  id: string;
+  productName: string;
+  priceAtPurchase: string;
+  quantity: number;
+  subtotal: string;
+}
+
+export interface OrderResponse {
+  id: string;
+  status: string;
+  totalAmount: string;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** POST /orders — create order from current cart, requires accessToken */
+export async function createOrder(accessToken: string): Promise<OrderResponse> {
+  return authFetch<OrderResponse>("/orders", accessToken, {
+    method: "POST",
+  });
+}
+
 export async function deleteCartItem(
   cartItemId: string,
   accessToken: string,

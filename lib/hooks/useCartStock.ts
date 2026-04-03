@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import type { CartItem } from "@/lib/store/cart-store";
+import { getProductBySlug } from "../api";
 
 export interface StockInfo {
   productId: string;
@@ -29,10 +30,7 @@ export function useCartStock(items: CartItem[]): UseCartStockReturn {
   const [isLoading, setIsLoading] = useState(false);
 
   // Memoize product IDs to use as stable dependency
-  const productIds = useMemo(
-    () => items.map((item) => item.productId),
-    [items],
-  );
+  const slugs = useMemo(() => items.map((item) => item.slug), [items]);
 
   const fetchStock = useCallback(async () => {
     if (items.length === 0) {
@@ -42,35 +40,35 @@ export function useCartStock(items: CartItem[]): UseCartStockReturn {
 
     setIsLoading(true);
 
-    // try {
-    //   const products = await client.fetch(PRODUCTS_BY_IDS_QUERY, {
-    //     ids: productIds,
-    //   });
+    try {
+      const products = await Promise.all(
+        slugs.map((slug) => getProductBySlug(slug)),
+      );
 
-    //   const newStockMap = new Map<string, StockInfo>();
+      const newStockMap = new Map<string, StockInfo>();
 
-    //   for (const item of items) {
-    //     const product = products.find(
-    //       (p: { _id: string }) => p._id === item.productId
-    //     );
-    //     const currentStock = product?.stock ?? 0;
+      for (const item of items) {
+        const product = products.find(
+          (p: { slug: string }) => p.slug === item.slug,
+        );
+        const currentStock = product?.quantityInStock ?? 0;
 
-    //     newStockMap.set(item.productId, {
-    //       productId: item.productId,
-    //       currentStock,
-    //       isOutOfStock: currentStock === 0,
-    //       exceedsStock: item.quantity > currentStock,
-    //       availableQuantity: Math.min(item.quantity, currentStock),
-    //     });
-    //   }
+        newStockMap.set(item.productId, {
+          productId: item.productId,
+          currentStock,
+          isOutOfStock: currentStock === 0,
+          exceedsStock: item.quantity > currentStock,
+          availableQuantity: Math.min(item.quantity, currentStock),
+        });
+      }
 
-    //   setStockMap(newStockMap);
-    // } catch (error) {
-    //   console.error("Failed to fetch stock:", error);
-    // } finally {
-    //   setIsLoading(false);
-    // }
-  }, [items, productIds]);
+      setStockMap(newStockMap);
+    } catch (error) {
+      console.error("Failed to fetch stock:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [items, slugs]);
 
   useEffect(() => {
     fetchStock();

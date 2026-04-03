@@ -91,6 +91,7 @@ export function CartItem({ item, stockInfo }: CartItemProps) {
                 price={item.price}
                 image={item.image}
                 stock={currentStock}
+                slug={item.slug}
               />
             </div>
           )}

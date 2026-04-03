@@ -52,6 +52,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           price={product.price ?? 0}
           image={imageUrl ?? undefined}
           stock={product.quantityInStock ?? 0}
+          slug={product.slug}
         />
       </div>
     </div>

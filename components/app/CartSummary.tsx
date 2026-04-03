@@ -20,6 +20,10 @@ export function CartSummary({ hasStockIssues = false }: CartSummaryProps) {
 
   if (totalItems === 0) return null;
 
+  const handleClick = () => {
+    closeCart();
+  };
+
   return (
     <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex justify-between text-base font-medium text-zinc-900 dark:text-zinc-100">
@@ -35,10 +39,8 @@ export function CartSummary({ hasStockIssues = false }: CartSummaryProps) {
             Resolve stock issues to checkout
           </Button>
         ) : (
-          <Button asChild className="w-full">
-            <Link href="/checkout" onClick={() => closeCart()}>
-              Checkout
-            </Link>
+          <Button asChild className="w-full" onClick={handleClick}>
+            <Link href="/checkout">Checkout</Link>
           </Button>
         )}
       </div>

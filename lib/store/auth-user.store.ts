@@ -1,14 +1,27 @@
 /**
  * lib/store/auth-user.store.ts
- * ─────────────────────────────
- * Stores the Auth0 access token + current user info.
- * Populated by the /callback page after a successful login.
  */
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { getAuthMe } from "@/lib/api/auth";
 import type { AuthUser } from "@/lib/api/auth";
+
+const AUTH_SESSION_COOKIE = "x-auth0-session";
+const COOKIE_MAX_AGE = 60 * 60 * 2;
+
+function setAuth0SessionCookie() {
+  document.cookie = [
+    `${AUTH_SESSION_COOKIE}=1`,
+    `max-age=${COOKIE_MAX_AGE}`,
+    "path=/",
+    "SameSite=Lax",
+  ].join("; ");
+}
+
+function clearAuth0SessionCookie() {
+  document.cookie = `${AUTH_SESSION_COOKIE}=; max-age=0; path=/`;
+}
 
 type AuthStatus = "idle" | "loading" | "authenticated" | "error";
 
@@ -20,9 +33,7 @@ interface AuthUserState {
 }
 
 interface AuthUserActions {
-  /** Called by the callback page with the raw token from the URL hash */
   setTokenAndFetchUser: (accessToken: string) => Promise<void>;
-  /** Clear everything on sign-out */
   logout: () => void;
 }
 
@@ -36,10 +47,10 @@ export const useAuthUserStore = create<AuthUserState & AuthUserActions>()(
 
       setTokenAndFetchUser: async (accessToken) => {
         set({ status: "loading", error: null, accessToken });
-
         try {
           const user = await getAuthMe(accessToken);
           set({ user, status: "authenticated", error: null });
+          setAuth0SessionCookie();
         } catch (err) {
           const message =
             err instanceof Error ? err.message : "Failed to fetch user";
@@ -49,23 +60,22 @@ export const useAuthUserStore = create<AuthUserState & AuthUserActions>()(
             accessToken: null,
             user: null,
           });
+          clearAuth0SessionCookie();
         }
       },
 
       logout: () => {
         set({ accessToken: null, user: null, status: "idle", error: null });
+        clearAuth0SessionCookie();
       },
     }),
     {
       name: "auth-user",
       storage: createJSONStorage(() => sessionStorage),
-      // Only persist token + user — not loading/error state
       partialize: (s) => ({ accessToken: s.accessToken, user: s.user }),
     },
   ),
 );
-
-// ── Selectors ──────────────────────────────────────────────────────────────────
 
 export const selectUser = (s: AuthUserState) => s.user;
 export const selectAccessToken = (s: AuthUserState) => s.accessToken;

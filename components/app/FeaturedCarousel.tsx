@@ -107,9 +107,7 @@ interface FeaturedSlideProps {
 }
 
 function FeaturedSlide({ product }: FeaturedSlideProps) {
-  const mainImage =
-    "https://zsofa.vn/wp-content/uploads/2025/07/sofa-361-1-1.jpg";
-  console.log("product", product);
+  const mainImage = product.image;
 
   return (
     <div className="flex min-h-[400px] flex-col md:min-h-[450px] md:flex-row lg:min-h-[500px]">

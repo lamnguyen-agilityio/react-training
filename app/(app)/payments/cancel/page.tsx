@@ -12,15 +12,21 @@ import {
   selectAccessToken,
 } from "@/lib/store/auth-user.store";
 import type { PaymentResponse } from "@/lib/actions/checkout";
+import { useCartStore } from "@/lib/store/cart-store-provider";
 
 export default function PaymentCancelPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
   const accessToken = useAuthUserStore(selectAccessToken);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
+
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   useEffect(() => {
     if (!orderId || !accessToken) {

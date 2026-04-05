@@ -9,7 +9,6 @@ import {
   useAuthUserStore,
   selectAccessToken,
 } from "@/lib/store/auth-user.store";
-import { useCartStore } from "@/lib/store/cart-store-provider";
 
 interface CheckoutButtonProps {
   disabled?: boolean;
@@ -19,7 +18,6 @@ export function CheckoutButton({ disabled }: CheckoutButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const accessToken = useAuthUserStore(selectAccessToken);
-  const clearCart = useCartStore((s) => s.clearCart);
 
   const handleCheckout = () => {
     setError(null);
@@ -27,7 +25,6 @@ export function CheckoutButton({ disabled }: CheckoutButtonProps) {
       const result = await createCheckoutSession(accessToken ?? "");
 
       if (result.success && result.checkoutUrl) {
-        clearCart();
         window.location.href = result.checkoutUrl;
       } else {
         setError(result.error ?? "Checkout failed");

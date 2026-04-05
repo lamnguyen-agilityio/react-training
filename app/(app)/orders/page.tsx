@@ -1,26 +1,88 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { Package, ArrowRight } from "lucide-react";
+import { Package, ArrowRight, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { sanityFetch } from "@/sanity/lib/live";
-import { ORDERS_BY_USER_QUERY } from "@/lib/sanity/queries/orders";
 import { getOrderStatus } from "@/lib/constants/orderStatus";
-import { formatPrice, formatDate, formatOrderNumber } from "@/lib/utils";
-import { StackedProductImages } from "@/components/app/StackedProductImages";
+import { formatPrice, formatDate } from "@/lib/utils";
+import {
+  useAuthUserStore,
+  selectAccessToken,
+  selectAuthStatus,
+} from "@/lib/store/auth-user.store";
+import { authFetch } from "@/lib/api/client";
 
-export const metadata = {
-  title: "Your Orders | Furniture Shop",
-  description: "View your order history",
-};
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-export default async function OrdersPage() {
-  const { userId } = await auth();
+interface OrderItem {
+  id: string;
+  productName: string;
+  priceAtPurchase: string;
+  quantity: number;
+  subtotal: string;
+  productImage?: string;
+}
 
-  const { data: orders } = await sanityFetch({
-    query: ORDERS_BY_USER_QUERY,
-    params: { clerkUserId: userId ?? "" },
-  });
+interface Order {
+  id: string;
+  status: string;
+  totalAmount: string;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface OrdersResponse {
+  total: number;
+  page: number;
+  limit: number;
+  items: Order[];
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function OrdersPage() {
+  const accessToken = useAuthUserStore(selectAccessToken);
+  const authStatus = useAuthUserStore(selectAuthStatus);
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const isRehydrating = authStatus === "idle" || authStatus === "loading";
+    if (isRehydrating && !timedOut) return;
+
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+
+    authFetch<OrdersResponse>("/orders", accessToken)
+      .then((res) => setOrders(res.items))
+      .catch((err) => console.error("[OrdersPage]", err))
+      .finally(() => setLoading(false));
+  }, [accessToken, authStatus, timedOut]);
+
+  // ── Loading ─────────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
+
+  // ── Empty ───────────────────────────────────────────────────────────────────
 
   if (orders.length === 0) {
     return (
@@ -35,6 +97,8 @@ export default async function OrdersPage() {
       </div>
     );
   }
+
+  // ── List ────────────────────────────────────────────────────────────────────
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -51,38 +115,64 @@ export default async function OrdersPage() {
         {orders.map((order) => {
           const status = getOrderStatus(order.status);
           const StatusIcon = status.icon;
-          const images = (order.itemImages ?? []).filter(
-            (url): url is string => url !== null,
+          const itemNames = order.items.map((i) => i.productName);
+          const totalItems = order.items.reduce(
+            (sum, i) => sum + i.quantity,
+            0,
           );
 
           return (
             <Link
-              key={order._id}
-              href={`/orders/${order._id}`}
+              key={order.id}
+              href={`/orders/${order.id}`}
               className="group block rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
             >
               <div className="flex gap-5 p-5">
-                {/* Left: Product Images Stack */}
-                <StackedProductImages
-                  images={images}
-                  totalCount={order.itemCount ?? 0}
-                  size="lg"
-                />
-
-                {/* Right: Order Details */}
+                {/* Images stack */}
+                <div className="relative flex shrink-0">
+                  {order.items.slice(0, 3).map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="relative h-16 w-16 overflow-hidden rounded-lg border-2 border-white bg-zinc-100 dark:border-zinc-900 dark:bg-zinc-800"
+                      style={{ marginLeft: idx > 0 ? "-20px" : 0, zIndex: idx }}
+                    >
+                      {item.productImage ? (
+                        <Image
+                          src={item.productImage}
+                          alt={item.productName}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Package className="h-6 w-6 text-zinc-400" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {order.items.length > 3 && (
+                    <div
+                      className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border-2 border-white bg-zinc-100 text-xs font-medium text-zinc-500 dark:border-zinc-900 dark:bg-zinc-800"
+                      style={{ marginLeft: "-20px", zIndex: 3 }}
+                    >
+                      +{order.items.length - 3}
+                    </div>
+                  )}
+                </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
                   {/* Top: Order Info + Status */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                        Order #{formatOrderNumber(order.orderNumber)}
+                        Order #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                       <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                         {formatDate(order.createdAt)}
                       </p>
                     </div>
                     <Badge
-                      className={`${status.color} shrink-0 flex items-center gap-1`}
+                      className={`${status.color} flex shrink-0 items-center gap-1`}
                     >
                       <StatusIcon className="h-3 w-3" />
                       {status.label}
@@ -92,21 +182,20 @@ export default async function OrdersPage() {
                   {/* Bottom: Items + Total */}
                   <div className="mt-2 flex items-end justify-between">
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {order.itemCount}{" "}
-                      {order.itemCount === 1 ? "item" : "items"}
+                      {totalItems} {totalItems === 1 ? "item" : "items"}
                     </p>
                     <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                      {formatPrice(order.total)}
+                      {formatPrice(parseFloat(order.totalAmount))}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Footer: View Details */}
+              {/* Footer: Item names + View link */}
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 dark:border-zinc-800">
                 <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
-                  {order.itemNames?.slice(0, 2).filter(Boolean).join(", ")}
-                  {(order.itemNames?.length ?? 0) > 2 && "..."}
+                  {itemNames.slice(0, 2).join(", ")}
+                  {itemNames.length > 2 && "..."}
                 </p>
                 <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-zinc-500 transition-colors group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
                   View order

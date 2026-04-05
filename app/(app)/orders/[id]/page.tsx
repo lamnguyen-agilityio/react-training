@@ -1,36 +1,81 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { auth } from "@clerk/nextjs/server";
-import { ArrowLeft, CreditCard, MapPin } from "lucide-react";
+import { ArrowLeft, CreditCard, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { sanityFetch } from "@/sanity/lib/live";
-import { ORDER_BY_ID_QUERY } from "@/lib/sanity/queries/orders";
 import { getOrderStatus } from "@/lib/constants/orderStatus";
 import { formatPrice, formatDate } from "@/lib/utils";
+import {
+  useAuthUserStore,
+  selectAccessToken,
+  selectAuthStatus,
+} from "@/lib/store/auth-user.store";
+import { authFetch } from "@/lib/api/client";
 
-export const metadata = {
-  title: "Order Details | Furniture Shop",
-  description: "View your order details",
-};
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface OrderPageProps {
-  params: Promise<{ id: string }>;
+interface OrderItem {
+  id: string;
+  productName: string;
+  productImage?: string;
+  priceAtPurchase: string;
+  quantity: number;
+  subtotal: string;
 }
 
-export default async function OrderDetailPage({ params }: OrderPageProps) {
-  const { id } = await params;
-  const { userId } = await auth();
+interface Order {
+  id: string;
+  status: string;
+  totalAmount: string;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
 
-  const { data: order } = await sanityFetch({
-    query: ORDER_BY_ID_QUERY,
-    params: { id },
-  });
+// ── Page ──────────────────────────────────────────────────────────────────────
 
-  // Verify order exists and belongs to current user
-  if (!order || order.clerkUserId !== userId) {
-    notFound();
+export default function OrderDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const accessToken = useAuthUserStore(selectAccessToken);
+  const authStatus = useAuthUserStore(selectAuthStatus);
+
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const isRehydrating = authStatus === "idle" || authStatus === "loading";
+    if (isRehydrating && !timedOut) return;
+
+    if (!accessToken) {
+      router.replace("/");
+      return;
+    }
+
+    authFetch<Order>(`/orders/${params.id}`, accessToken)
+      .then((res) => setOrder(res))
+      .catch(() => router.replace("/orders"))
+      .finally(() => setLoading(false));
+  }, [accessToken, authStatus, timedOut, params.id, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      </div>
+    );
   }
+
+  if (!order) return null;
 
   const status = getOrderStatus(order.status);
   const StatusIcon = status.icon;
@@ -49,10 +94,10 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
         <div className="mt-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              Order {order.orderNumber}
+              Order #{order.id.slice(0, 8).toUpperCase()}
             </h1>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Placed on {formatDate(order.createdAt, "datetime")}
+              Placed on {formatDate(order.createdAt)}
             </p>
           </div>
           <Badge className={`${status.color} flex items-center gap-1.5`}>
@@ -68,18 +113,19 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
           <div className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
               <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                Items ({order.items?.length ?? 0})
+                Items ({order.items.length})
               </h2>
             </div>
+
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {order.items?.map((item) => (
-                <div key={item._key} className="flex gap-4 px-6 py-4">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex gap-4 px-6 py-4">
                   {/* Image */}
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
-                    {item.product?.image?.asset?.url ? (
+                    {item.productImage ? (
                       <Image
-                        src={item.product.image.asset.url}
-                        alt={item.product.name ?? "Product"}
+                        src={item.productImage}
+                        alt={item.productName}
                         fill
                         className="object-cover"
                         sizes="80px"
@@ -93,29 +139,22 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
 
                   {/* Details */}
                   <div className="flex flex-1 flex-col justify-between">
-                    <div>
-                      <Link
-                        href={`/products/${item.product?.slug}`}
-                        className="font-medium text-zinc-900 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-300"
-                      >
-                        {item.product?.name ?? "Unknown Product"}
-                      </Link>
-                      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        Qty: {item.quantity}
-                      </p>
-                    </div>
+                    <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {item.productName}
+                    </p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Qty: {item.quantity}
+                    </p>
                   </div>
 
                   {/* Price */}
                   <div className="text-right">
                     <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {formatPrice(
-                        (item.priceAtPurchase ?? 0) * (item.quantity ?? 1),
-                      )}
+                      {formatPrice(parseFloat(item.subtotal))}
                     </p>
-                    {(item.quantity ?? 1) > 1 && (
+                    {item.quantity > 1 && (
                       <p className="text-sm text-zinc-500">
-                        {formatPrice(item.priceAtPurchase)} each
+                        {formatPrice(parseFloat(item.priceAtPurchase))} each
                       </p>
                     )}
                   </div>
@@ -125,9 +164,9 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
           </div>
         </div>
 
-        {/* Order Summary & Details */}
+        {/* Sidebar */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Summary */}
+          {/* Order Summary */}
           <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
             <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
               Order Summary
@@ -138,7 +177,7 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                   Subtotal
                 </span>
                 <span className="text-zinc-900 dark:text-zinc-100">
-                  {formatPrice(order.total)}
+                  {formatPrice(parseFloat(order.totalAmount))}
                 </span>
               </div>
               <div className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
@@ -147,35 +186,12 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                     Total
                   </span>
                   <span className="text-zinc-900 dark:text-zinc-100">
-                    {formatPrice(order.total)}
+                    {formatPrice(parseFloat(order.totalAmount))}
                   </span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Shipping Address */}
-          {order.address && (
-            <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-zinc-400" />
-                <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  Shipping Address
-                </h2>
-              </div>
-              <div className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-                {order.address.name && <p>{order.address.name}</p>}
-                {order.address.line1 && <p>{order.address.line1}</p>}
-                {order.address.line2 && <p>{order.address.line2}</p>}
-                <p>
-                  {[order.address.city, order.address.postcode]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-                {order.address.country && <p>{order.address.country}</p>}
-              </div>
-            </div>
-          )}
 
           {/* Payment Info */}
           <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
@@ -185,21 +201,15 @@ export default async function OrderDetailPage({ params }: OrderPageProps) {
                 Payment
               </h2>
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-light tracking-wide">Status</span>
+                <span className="text-xs font-light tracking-wide text-zinc-500">
+                  Status
+                </span>
                 <span className="text-sm font-medium capitalize text-green-600">
                   {order.status}
                 </span>
               </div>
-              {order.email && (
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-light tracking-wide">Email</p>
-                  <p className="min-w-0 truncate text-sm text-zinc-900 dark:text-zinc-100">
-                    {order.email}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>

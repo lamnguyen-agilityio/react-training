@@ -11,6 +11,7 @@ import {
   selectAuthStatus,
 } from "@/lib/store/auth-user.store";
 import type { OrderResponse } from "@/lib/actions/checkout";
+import { useCartStore } from "@/lib/store/cart-store-provider";
 
 const REHYDRATE_TIMEOUT_MS = 3000;
 
@@ -20,6 +21,7 @@ export default function PaymentSuccessPage() {
   const orderId = searchParams.get("order_id");
   const accessToken = useAuthUserStore(selectAccessToken);
   const authStatus = useAuthUserStore(selectAuthStatus);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,10 @@ export default function PaymentSuccessPage() {
     const t = setTimeout(() => setTimedOut(true), REHYDRATE_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   useEffect(() => {
     const isRehydrating = authStatus === "idle" || authStatus === "loading";

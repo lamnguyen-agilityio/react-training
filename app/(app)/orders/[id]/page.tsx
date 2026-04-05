@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, CreditCard, Loader2 } from "lucide-react";
+import { ArrowLeft, CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getOrderStatus } from "@/lib/constants/orderStatus";
 import { formatPrice, formatDate } from "@/lib/utils";
 import {
@@ -35,6 +36,17 @@ interface Order {
   updatedAt: string;
 }
 
+interface PaymentInfo {
+  id: string;
+  provider: string;
+  status: string;
+  amount: string;
+  currency: string;
+  checkoutUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
@@ -44,8 +56,10 @@ export default function OrderDetailPage() {
   const authStatus = useAuthUserStore(selectAuthStatus);
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [payment, setPayment] = useState<PaymentInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [timedOut, setTimedOut] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), 3000);
@@ -62,10 +76,26 @@ export default function OrderDetailPage() {
     }
 
     authFetch<Order>(`/orders/${params.id}`, accessToken)
-      .then((res) => setOrder(res))
+      .then((res) => {
+        setOrder(res);
+        // Nếu pending → fetch payment để lấy checkoutUrl
+        if (res.status === "pending") {
+          return authFetch<PaymentInfo>(`/payments/${params.id}`, accessToken)
+            .then(setPayment)
+            .catch(() => {}); // payment có thể chưa tạo — ignore
+        }
+      })
       .catch(() => router.replace("/orders"))
       .finally(() => setLoading(false));
   }, [accessToken, authStatus, timedOut, params.id, router]);
+
+  const handleRetryPayment = () => {
+    if (!payment?.checkoutUrl) return;
+    setRetrying(true);
+    window.location.href = payment.checkoutUrl;
+  };
+
+  // ── Loading ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -79,6 +109,7 @@ export default function OrderDetailPage() {
 
   const status = getOrderStatus(order.status);
   const StatusIcon = status.icon;
+  const isPending = order.status === "pending";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -201,15 +232,34 @@ export default function OrderDetailPage() {
                 Payment
               </h2>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-light tracking-wide text-zinc-500">
                   Status
                 </span>
-                <span className="text-sm font-medium capitalize text-green-600">
+                <span
+                  className={`text-sm font-medium capitalize ${isPending ? "text-amber-500" : "text-green-600"}`}
+                >
                   {order.status}
                 </span>
               </div>
+
+              {/* Retry button — chỉ hiện khi pending và có checkoutUrl */}
+              {isPending && payment?.checkoutUrl && (
+                <Button
+                  onClick={handleRetryPayment}
+                  disabled={retrying}
+                  className="w-full"
+                  size="sm"
+                >
+                  {retrying ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Complete Payment
+                </Button>
+              )}
             </div>
           </div>
         </div>

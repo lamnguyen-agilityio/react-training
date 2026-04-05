@@ -71,9 +71,16 @@ export async function apiRequest<T>(
   const { method = "GET", body, accessToken, next, signal } = options;
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
     Accept: "application/json",
   };
+
+  let requestBody = body;
+
+  if (body instanceof FormData) {
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    requestBody = JSON.stringify(body);
+  }
 
   if (accessToken) {
     headers["Authorization"] = `Bearer ${accessToken}`;
@@ -82,7 +89,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: requestBody as any,
     signal,
     next,
   });
@@ -102,7 +109,6 @@ export async function apiRequest<T>(
   }
 
   if (response.status === 204) return undefined as T;
-
   return response.json() as Promise<T>;
 }
 

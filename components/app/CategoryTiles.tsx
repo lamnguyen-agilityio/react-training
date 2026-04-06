@@ -51,8 +51,7 @@ export function CategoryTiles({
         {/* Category tiles */}
         {categories.map((category) => {
           const isActive = activeCategory === category.slug;
-          const imageUrl =
-            "https://bizweb.dktcdn.net/thumb/1024x1024/100/358/409/products/ghe-sofa-vang-da-ket-hop-ni-hien-dai-sf-005.jpg?v=1708220423300";
+          const imageUrl = category.image;
 
           return (
             <Link

@@ -23,6 +23,7 @@
  * from the browser.
  */
 
+import { unstable_noStore as noStore } from "next/cache";
 import { getAuthProvider } from "@/lib/api/auth";
 import { AuthProviderGateClient } from "./AuthProviderGateClient";
 
@@ -31,15 +32,16 @@ interface Props {
 }
 
 export async function AuthProviderGateServer({ children }: Props) {
-  // Fetched on the server — uses Next.js ISR cache (revalidate: 300)
-  let active: "clerk" | "auth0" = "clerk"; // safe default
+  // Opt out of full route cache — always fetch fresh provider on every request
+  noStore();
+
+  let active: "clerk" | "auth0" = "clerk";
 
   try {
     const data = await getAuthProvider();
     active = data.active;
   } catch (err) {
     console.error("[AuthProviderGateServer] Failed to fetch provider:", err);
-    // Fall through with default — auth will still work, just uses the default
   }
 
   return (

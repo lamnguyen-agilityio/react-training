@@ -21,7 +21,7 @@ export interface AuthUser {
 /** GET /auth/provider — public */
 export async function getAuthProvider(): Promise<AuthProviderResponse> {
   return publicGet<AuthProviderResponse>("/auth/provider", {
-    revalidate: 300,
+    revalidate: 0,
     tags: ["auth-provider"],
   });
 }

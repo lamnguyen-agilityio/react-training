@@ -1,6 +1,7 @@
 "use client";
 
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { useState } from "react";
+import { Minus, Plus, ShoppingBag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCartActions, useCartItem } from "@/lib/store/cart-store-provider";
@@ -27,29 +28,42 @@ export function AddToCartButton({
 }: AddToCartButtonProps) {
   const { addItem, updateQuantity } = useCartActions();
   const cartItem = useCartItem(productId);
-
   const quantityInCart = cartItem?.quantity ?? 0;
   const isOutOfStock = stock <= 0;
   const isAtMax = quantityInCart >= stock;
 
-  const handleAdd = () => {
-    if (quantityInCart < stock) {
-      addItem({ productId, name, price, image, slug }, 1);
-      toast.success(`Added ${name}`);
+  const [loading, setLoading] = useState(false);
+
+  const withLoading = async (fn: () => Promise<void>) => {
+    setLoading(true);
+    try {
+      await fn();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDecrement = () => {
-    if (quantityInCart > 0) {
-      updateQuantity(productId, quantityInCart - 1);
-    }
-  };
+  const handleAdd = () =>
+    withLoading(async () => {
+      if (quantityInCart < stock) {
+        await addItem({ productId, name, price, image, slug }, 1);
+        toast.success(`Added ${name}`);
+      }
+    });
 
-  const handleIncrement = () => {
-    if (quantityInCart < stock) {
-      updateQuantity(productId, quantityInCart + 1);
-    }
-  };
+  const handleDecrement = () =>
+    withLoading(async () => {
+      if (quantityInCart > 0) {
+        await updateQuantity(productId, quantityInCart - 1);
+      }
+    });
+
+  const handleIncrement = () =>
+    withLoading(async () => {
+      if (quantityInCart < stock) {
+        await updateQuantity(productId, quantityInCart + 1);
+      }
+    });
 
   // Out of stock
   if (isOutOfStock) {
@@ -64,17 +78,25 @@ export function AddToCartButton({
     );
   }
 
-  // Not in cart - show Add to Basket button
+  // Not in cart
   if (quantityInCart === 0) {
     return (
-      <Button onClick={handleAdd} className={cn("h-11 w-full", className)}>
-        <ShoppingBag className="mr-2 h-4 w-4" />
+      <Button
+        onClick={handleAdd}
+        disabled={loading}
+        className={cn("h-11 w-full", className)}
+      >
+        {loading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <ShoppingBag className="mr-2 h-4 w-4" />
+        )}
         Add to Basket
       </Button>
     );
   }
 
-  // In cart - show quantity controls
+  // In cart — quantity controls
   return (
     <div
       className={cn(
@@ -87,18 +109,22 @@ export function AddToCartButton({
         size="icon"
         className="h-full flex-1 rounded-r-none"
         onClick={handleDecrement}
+        disabled={loading}
       >
         <Minus className="h-4 w-4" />
       </Button>
-      <span className="flex-1 text-center text-sm font-semibold tabular-nums">
-        {quantityInCart}
+
+      <span className="relative flex flex-1 items-center justify-center text-sm font-semibold tabular-nums">
+        <span className={loading ? "opacity-0" : ""}>{quantityInCart}</span>
+        {loading && <Loader2 className="absolute h-4 w-4 animate-spin" />}
       </span>
+
       <Button
         variant="ghost"
         size="icon"
         className="h-full flex-1 rounded-l-none disabled:opacity-20"
         onClick={handleIncrement}
-        disabled={isAtMax}
+        disabled={loading || isAtMax}
       >
         <Plus className="h-4 w-4" />
       </Button>

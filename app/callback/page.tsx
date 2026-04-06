@@ -50,11 +50,11 @@ function parseHash(hash: string): CallbackSuccess | CallbackError | null {
 
 function toCartItem(item: CartItemResponse): CartItem {
   return {
-    cartItemId: item.id,
+    cartItemId: item.id, // ← server cart item id
     productId: item.product.id,
     name: item.product.name,
     slug: item.product.slug,
-    price: parseFloat(String(item.product.price)),
+    price: parseFloat(item.product.price),
     image: item.product.image,
     quantity: item.quantity,
   };
@@ -91,7 +91,12 @@ async function syncCartAfterLogin(accessToken: string): Promise<void> {
       CART_STORAGE_KEY,
       JSON.stringify({ state: { items: mergedItems }, version: 0 }),
     );
-  } catch {}
+    window.dispatchEvent(
+      new CustomEvent("cart:rehydrate", { detail: { items: mergedItems } }),
+    );
+  } catch {
+    // localStorage write failed — ignore, cart will just be stale
+  }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────

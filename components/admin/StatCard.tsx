@@ -23,14 +23,8 @@ interface PaginatedResponse {
 interface StatCardProps {
   title: string;
   icon: LucideIcon;
-  /** API path, e.g. "orders", "products" */
   documentType: string;
-  /** Optional query string, e.g. "status=pending" */
   filter?: string;
-  /**
-   * Nếu được set, fetch toàn bộ items và đếm những item có
-   * quantityInStock < warningStock. Dùng cho products.
-   */
   warningStock?: number;
   valueFormatter?: (count: number) => string;
   href?: string;
@@ -86,13 +80,11 @@ function StatCardContent({
     authFetch<PaginatedResponse>(url, accessToken)
       .then((res) => {
         if (warningStock !== undefined) {
-          // Đếm items có quantityInStock < warningStock
           const lowStock = (res.items as { quantityInStock?: number }[]).filter(
             (item) => (item.quantityInStock ?? 0) < warningStock,
           ).length;
           setCount(lowStock);
         } else {
-          // Dùng field `total` từ pagination, fallback items.length
           setCount(res.total ?? res.items?.length ?? 0);
         }
       })

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAuthProviderStore } from "@/lib/store/auth-provider.store";
 import { useAuthUserStore } from "@/lib/store/auth-user.store";
+import { AuthTokenSync } from "./AuthTokenSync";
 import type { AuthProviderName } from "@/lib/api/auth";
 
 import { ClerkProvider } from "@clerk/nextjs";
@@ -26,6 +27,7 @@ export function AuthProviderGateClient({ initialActive, children }: Props) {
       error: null,
     });
 
+    // 2. Set provider cookie for middleware
     document.cookie = [
       `${PROVIDER_COOKIE}=${initialActive}`,
       `max-age=${COOKIE_MAX_AGE}`,
@@ -33,6 +35,7 @@ export function AuthProviderGateClient({ initialActive, children }: Props) {
       "SameSite=Lax",
     ].join("; ");
 
+    // 3. Auth0: rehydrate auth-user store from sessionStorage
     if (initialActive === "auth0") {
       const stored = sessionStorage.getItem("auth-user");
       if (stored) {
@@ -49,17 +52,31 @@ export function AuthProviderGateClient({ initialActive, children }: Props) {
               error: null,
             });
           }
-        } catch {}
+        } catch {
+          // sessionStorage corrupted — ignore
+        }
       }
     }
   }, [initialActive]);
 
   if (initialActive === "clerk") {
-    return <ClerkProvider>{children}</ClerkProvider>;
+    return (
+      <ClerkProvider>
+        {/* Syncs Clerk session token → auth-user.store on every session change */}
+        <AuthTokenSync provider="clerk" />
+        {children}
+      </ClerkProvider>
+    );
   }
 
   if (initialActive === "auth0") {
-    return <Auth0Provider>{children}</Auth0Provider>;
+    return (
+      <Auth0Provider>
+        {/* Auth0 token already handled by /callback page */}
+        <AuthTokenSync provider="auth0" />
+        {children}
+      </Auth0Provider>
+    );
   }
 
   return <>{children}</>;

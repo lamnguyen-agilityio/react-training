@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Category } from "@/lib/api";
+import { SORT_OPTIONS } from "@/lib/constants/filters";
 
 interface ProductFiltersProps {
   categories: Category[];
@@ -26,7 +27,12 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
 
   const currentSearch = searchParams.get("search") ?? "";
   const currentCategory = searchParams.get("categorySlug") ?? "";
-  // const currentSort = searchParams.get("sort") ?? "name";
+  const currentSort =
+    SORT_OPTIONS.find(
+      (o) =>
+        o.sortBy === searchParams.get("sortBy") &&
+        o.sortOrder === searchParams.get("sortOrder"),
+    )?.key ?? "createdAt_desc";
   const urlMinPrice = Number(searchParams.get("minPrice")) || 0;
   const urlMaxPrice = Number(searchParams.get("maxPrice")) || 5000;
 
@@ -226,26 +232,34 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
       </div>
 
       {/* Sort */}
-      {/*<div>
+      <div>
         <span className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Sort By
         </span>
         <Select
           value={currentSort}
-          onValueChange={(value) => updateParams({ sort: value })}
+          onValueChange={(value) => {
+            const option = SORT_OPTIONS.find((o) => o.key === value);
+            if (option) {
+              updateParams({
+                sortBy: option.sortBy,
+                sortOrder: option.sortOrder,
+              });
+            }
+          }}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem key={option.key} value={option.key}>
                 {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>*/}
+      </div>
     </div>
   );
 }

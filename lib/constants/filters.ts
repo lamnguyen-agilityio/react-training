@@ -21,16 +21,38 @@ export const MATERIALS = [
 ] as const;
 
 export const SORT_OPTIONS = [
-  { value: "name", label: "Name (A-Z)" },
-  { value: "price_asc", label: "Price: Low to High" },
-  { value: "price_desc", label: "Price: High to Low" },
-  { value: "relevance", label: "Relevance" },
+  {
+    key: "createdAt_asc",
+    sortBy: "createdAt",
+    sortOrder: "asc",
+    label: "Date: Oldest first",
+  },
+  {
+    key: "createdAt_desc",
+    sortBy: "createdAt",
+    sortOrder: "desc",
+    label: "Date: Newest first",
+  },
+  { key: "name_asc", sortBy: "name", sortOrder: "asc", label: "Name (A-Z)" },
+  { key: "name_desc", sortBy: "name", sortOrder: "desc", label: "Name (Z-A)" },
+  {
+    key: "price_asc",
+    sortBy: "price",
+    sortOrder: "asc",
+    label: "Price: Low to High",
+  },
+  {
+    key: "price_desc",
+    sortBy: "price",
+    sortOrder: "desc",
+    label: "Price: High to Low",
+  },
 ] as const;
 
 // Type exports
 export type ColorValue = (typeof COLORS)[number]["value"];
 export type MaterialValue = (typeof MATERIALS)[number]["value"];
-export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
+// export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
 
 // ============================================
 // Sanity Schema Format Exports

@@ -11,7 +11,8 @@ interface PageProps {
     categorySlug?: string;
     minPrice?: string;
     maxPrice?: string;
-    // sort?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }>;
 }
 
@@ -22,7 +23,8 @@ export default async function HomePage({ searchParams }: PageProps) {
   const categorySlug = params.categorySlug ?? "";
   const minPrice = Number(params.minPrice) || 0;
   const maxPrice = Number(params.maxPrice) || 0;
-  // const sort = params.sort ?? "name";
+  const sortBy = params.sortBy ?? "name";
+  const sortOrder = params.sortOrder ?? "desc";
 
   // Fetch all data in parallel — allSettled so one failure won't break the page
   const [productsResult, categoriesResult, featuredProductsResult] =
@@ -32,7 +34,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         categorySlug: categorySlug || undefined,
         minPrice: minPrice || undefined,
         maxPrice: maxPrice || undefined,
-        // sort,
+        sortBy,
+        sortOrder,
       }),
       getCategories(),
       getProducts(),

@@ -35,7 +35,8 @@ export interface ProductsQuery {
   categorySlug?: string;
   minPrice?: number;
   maxPrice?: number;
-  sort?: string;
+  sortBy?: string;
+  sortOrder?: string;
   page?: number;
   limit?: number;
 }

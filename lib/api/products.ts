@@ -17,7 +17,8 @@ function buildProductsQuery(params: ProductsQuery): string {
   if (params.categorySlug) qs.set("categorySlug", params.categorySlug);
   if (params.minPrice) qs.set("minPrice", String(params.minPrice));
   if (params.maxPrice) qs.set("maxPrice", String(params.maxPrice));
-  // if (params.sort) qs.set("sort", params.sort);
+  if (params.sortBy) qs.set("sortBy", params.sortBy);
+  if (params.sortOrder) qs.set("sortOrder", params.sortOrder);
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
 

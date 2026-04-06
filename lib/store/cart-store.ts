@@ -13,7 +13,7 @@ import { useAuthUserStore } from "@/lib/store/auth-user.store";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface CartItem {
-  cartItemId?: string; // server-side cart item id — needed for PATCH /carts/items/:id
+  cartItemId?: string; // undefined for guest items or before API response
   productId: string;
   name: string;
   price: number;
@@ -29,12 +29,9 @@ export interface CartState {
 }
 
 export interface CartActions {
-  addItem: (
-    item: Omit<CartItem, "quantity">,
-    quantity?: number,
-  ) => Promise<void>;
-  removeItem: (productId: string) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: () => void;
   openCart: () => void;
@@ -58,11 +55,20 @@ function toCartItem(item: CartItemResponse): CartItem {
   };
 }
 
+/**
+ * Apply server response to store.
+ * - Same cartItemId + same qty → return same reference (no re-render)
+ * - Different qty (e.g. stock limit) → use server value
+ * - keepQuantity=true → preserve optimistic qty, only sync cartItemId
+ */
 function upsertItem(
   items: CartItem[],
   incoming: AddCartItemResponse,
+  keepQuantity = false,
 ): CartItem[] {
   const productId = incoming.product.id;
+  const existing = items.find((i) => i.productId === productId);
+
   const mapped: CartItem = {
     cartItemId: incoming.id,
     productId,
@@ -72,11 +78,39 @@ function upsertItem(
     image: incoming.product.image,
     quantity: incoming.quantity,
   };
-  const exists = items.some((i) => i.productId === productId);
-  if (exists) {
-    return items.map((i) => (i.productId === productId ? mapped : i));
+
+  if (existing) {
+    const finalQty = keepQuantity ? existing.quantity : mapped.quantity;
+
+    // Nothing changed — same reference, no re-render
+    if (
+      existing.cartItemId === mapped.cartItemId &&
+      existing.quantity === finalQty
+    ) {
+      return items;
+    }
+
+    return items.map((i) =>
+      i.productId === productId ? { ...mapped, quantity: finalQty } : i,
+    );
   }
+
   return [...items, mapped];
+}
+
+// ── In-flight version tracker ─────────────────────────────────────────────────
+// Only the LAST API response updates the store — stale responses are ignored.
+
+const inflightVersion = new Map<string, number>();
+
+function nextVersion(productId: string): number {
+  const v = (inflightVersion.get(productId) ?? 0) + 1;
+  inflightVersion.set(productId, v);
+  return v;
+}
+
+function isLatest(productId: string, version: number): boolean {
+  return inflightVersion.get(productId) === version;
 }
 
 // ── Default state ─────────────────────────────────────────────────────────────
@@ -95,135 +129,134 @@ export const createCartStore = (initState: CartState = defaultInitState) => {
       (set, get) => ({
         ...initState,
 
-        addItem: async (item, quantity = 1) => {
+        // ── addItem ──────────────────────────────────────────────────────────
+        addItem: (item, quantity = 1) => {
           const accessToken = useAuthUserStore.getState().accessToken;
 
-          if (accessToken) {
-            try {
-              const response = await addCartItem(
-                { productId: item.productId, quantity },
-                accessToken,
-              );
-              set((state) => ({ items: upsertItem(state.items, response) }));
-            } catch (err) {
-              console.error("[CartStore] addItem API failed:", err);
-              // Optimistic fallback — still add locally so UX doesn't break
-              set((state) => {
-                const existing = state.items.find(
-                  (i) => i.productId === item.productId,
-                );
-                if (existing) {
-                  return {
-                    items: state.items.map((i) =>
-                      i.productId === item.productId
-                        ? { ...i, quantity: i.quantity + quantity }
-                        : i,
-                    ),
-                  };
-                }
-                return { items: [...state.items, { ...item, quantity }] };
-              });
+          // 1. Optimistic update immediately
+          set((state) => {
+            const existing = state.items.find(
+              (i) => i.productId === item.productId,
+            );
+            if (existing) {
+              return {
+                items: state.items.map((i) =>
+                  i.productId === item.productId
+                    ? { ...i, quantity: i.quantity + quantity }
+                    : i,
+                ),
+              };
             }
-          } else {
-            // ── Guest: update store only ───────────────────────────────────
-            set((state) => {
-              const existing = state.items.find(
-                (i) => i.productId === item.productId,
-              );
-              if (existing) {
-                return {
-                  items: state.items.map((i) =>
-                    i.productId === item.productId
-                      ? { ...i, quantity: i.quantity + quantity }
-                      : i,
-                  ),
-                };
-              }
-              return { items: [...state.items, { ...item, quantity }] };
+            return { items: [...state.items, { ...item, quantity }] };
+          });
+
+          if (!accessToken) return;
+
+          const version = nextVersion(item.productId);
+          const optimisticQty =
+            get().items.find((i) => i.productId === item.productId)?.quantity ??
+            quantity;
+          const snapshot = get().items;
+
+          // 2. Fire API immediately, ignore stale responses
+          addCartItem(
+            { productId: item.productId, quantity: optimisticQty },
+            accessToken,
+          )
+            .then((response) => {
+              if (!isLatest(item.productId, version)) return;
+              set((state) => ({
+                items: upsertItem(state.items, response, true),
+              }));
+            })
+            .catch(() => {
+              if (!isLatest(item.productId, version)) return;
+              set({ items: snapshot });
             });
-          }
         },
 
-        removeItem: async (productId) => {
-          // Optimistic remove
-          const previousItems = get().items;
-          const cartItemId = previousItems.find(
+        // ── removeItem ───────────────────────────────────────────────────────
+        removeItem: (productId) => {
+          const snapshot = get().items;
+          const cartItemId = snapshot.find(
             (i) => i.productId === productId,
           )?.cartItemId;
 
+          // Optimistic remove immediately
           set((state) => ({
             items: state.items.filter((i) => i.productId !== productId),
           }));
 
           const accessToken = useAuthUserStore.getState().accessToken;
+          if (!accessToken) return;
 
-          if (accessToken && cartItemId) {
-            try {
-              await deleteCartItem(cartItemId, accessToken);
-            } catch (err) {
-              console.error("[CartStore] removeItem API failed:", err);
-              // Rollback
-              set({ items: previousItems });
-            }
+          if (cartItemId) {
+            // cartItemId known — delete directly
+            deleteCartItem(cartItemId, accessToken).catch(() => {
+              set({ items: snapshot });
+            });
+          } else {
+            // cartItemId unknown (guest item) — fetch cart to get it first
+            getUserCart(accessToken)
+              .then((cart) => {
+                const serverItem = cart.items.find(
+                  (i) => i.product.id === productId,
+                );
+                if (!serverItem?.id) return;
+                return deleteCartItem(serverItem.id, accessToken);
+              })
+              .catch(() => {
+                set({ items: snapshot });
+              });
           }
         },
 
-        updateQuantity: async (productId, quantity) => {
+        // ── updateQuantity ───────────────────────────────────────────────────
+        updateQuantity: (productId, quantity) => {
+          const snapshot = get().items;
+          const currentItem = snapshot.find((i) => i.productId === productId);
+          const accessToken = useAuthUserStore.getState().accessToken;
+
           if (quantity <= 0) {
             set((state) => ({
               items: state.items.filter((i) => i.productId !== productId),
             }));
+            if (accessToken && currentItem?.cartItemId) {
+              deleteCartItem(currentItem.cartItemId, accessToken).catch(() => {
+                set({ items: snapshot });
+              });
+            }
             return;
           }
 
-          const previousItems = get().items;
+          // 1. Optimistic update immediately
+          set((state) => ({
+            items: state.items.map((i) =>
+              i.productId === productId ? { ...i, quantity } : i,
+            ),
+          }));
 
-          const accessToken = useAuthUserStore.getState().accessToken;
-          if (!accessToken) {
+          if (!accessToken) return;
+
+          const version = nextVersion(productId);
+          const cartItemId = currentItem?.cartItemId;
+
+          // 2. Fire API immediately, ignore stale responses
+          const sync = async () => {
+            const response = cartItemId
+              ? await updateCartItem(cartItemId, quantity, accessToken)
+              : await addCartItem({ productId, quantity }, accessToken);
+
+            if (!isLatest(productId, version)) return;
             set((state) => ({
-              items: state.items.map((i) =>
-                i.productId === productId ? { ...i, quantity } : i,
-              ),
+              items: upsertItem(state.items, response, true),
             }));
-            return;
-          }
+          };
 
-          try {
-            let cartItemId = previousItems.find(
-              (i) => i.productId === productId,
-            )?.cartItemId;
-
-            if (!cartItemId) {
-              const cart = await getUserCart(accessToken);
-              const serverItem = cart.items.find(
-                (i) => i.product.id === productId,
-              );
-              cartItemId = serverItem?.id;
-
-              if (cart.items.length > 0) {
-                set({ items: cart.items.map(toCartItem) });
-              }
-            }
-
-            if (!cartItemId) {
-              const response = await addCartItem(
-                { productId, quantity },
-                accessToken,
-              );
-              set((state) => ({ items: upsertItem(state.items, response) }));
-              return;
-            }
-
-            const response = await updateCartItem(
-              cartItemId,
-              quantity,
-              accessToken,
-            );
-            set((state) => ({ items: upsertItem(state.items, response) }));
-          } catch (err) {
-            console.error("[CartStore] updateQuantity API failed:", err);
-            set({ items: previousItems });
-          }
+          sync().catch(() => {
+            if (!isLatest(productId, version)) return;
+            set({ items: snapshot });
+          });
         },
 
         clearCart: () => set({ items: [] }),
@@ -234,7 +267,6 @@ export const createCartStore = (initState: CartState = defaultInitState) => {
         mergeGuestCart: async (accessToken) => {
           const { items } = get();
           set({ isMerging: true });
-
           try {
             const response =
               items.length > 0

@@ -50,6 +50,7 @@ function parseHash(hash: string): CallbackSuccess | CallbackError | null {
 
 function toCartItem(item: CartItemResponse): CartItem {
   return {
+    cartItemId: item.id,
     productId: item.product.id,
     name: item.product.name,
     slug: item.product.slug,

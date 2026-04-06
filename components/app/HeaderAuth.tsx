@@ -1,7 +1,3 @@
-/**
- * components/app/HeaderAuth.tsx
- */
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -14,14 +10,13 @@ import {
   selectIsProviderReady,
 } from "@/lib/store/auth-provider.store";
 import { useCartStore } from "@/lib/store/cart-store-provider";
-
 import {
   SignedIn as ClerkSignedIn,
   SignedOut as ClerkSignedOut,
   SignInButton as ClerkSignInButton,
   UserButton as ClerkUserButton,
+  useClerk,
 } from "@clerk/nextjs";
-
 import {
   useAuthUserStore,
   selectUser,
@@ -29,14 +24,10 @@ import {
   selectAuthStatus,
 } from "@/lib/store/auth-user.store";
 
-// ── Auth0 login URLs ──────────────────────────────────────────────────────────
-
 const AUTH0_LOGIN = {
   google: process.env.NEXT_PUBLIC_AUTH0_GOOGLE_LOGIN_URL,
   github: process.env.NEXT_PUBLIC_AUTH0_GITHUB_LOGIN_URL,
 } as const;
-
-// ── Google icon (SVG — lucide doesn't have one) ───────────────────────────────
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -72,12 +63,10 @@ function Auth0SignInDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
-      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -97,13 +86,11 @@ function Auth0SignInDropdown() {
           className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </Button>
-
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
           <div className="px-3 py-2 text-xs font-medium text-zinc-400 dark:text-zinc-500">
             Continue with
           </div>
-
           <a
             href={AUTH0_LOGIN.google}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
@@ -112,7 +99,6 @@ function Auth0SignInDropdown() {
             <GoogleIcon className="h-4 w-4 shrink-0" />
             <span>Google</span>
           </a>
-
           <a
             href={AUTH0_LOGIN.github}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
@@ -127,7 +113,7 @@ function Auth0SignInDropdown() {
   );
 }
 
-// ── Auth0 user menu dropdown ──────────────────────────────────────────────────
+// ── Auth0 user menu ───────────────────────────────────────────────────────────
 
 interface Auth0UserMenuProps {
   picture?: string;
@@ -138,13 +124,11 @@ interface Auth0UserMenuProps {
 function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const clearCart = useCartStore((s) => s.clearCart);
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
-      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -168,10 +152,8 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
           </div>
         )}
       </button>
-
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-          {/* User info */}
           {name && (
             <div className="border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800">
               <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -179,8 +161,6 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
               </p>
             </div>
           )}
-
-          {/* My Orders */}
           <Link
             href="/orders"
             className="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
@@ -189,14 +169,10 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
             <Package className="h-4 w-4 shrink-0" />
             <span>My Orders</span>
           </Link>
-
-          {/* Sign out */}
           <button
             onClick={() => {
               setOpen(false);
-              clearCart();
               onLogout();
-              window.location.href = "/";
             }}
             className="flex w-full items-center gap-3 border-t border-zinc-100 px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
@@ -209,9 +185,20 @@ function Auth0UserMenu({ picture, name, onLogout }: Auth0UserMenuProps) {
   );
 }
 
-// ── Provider implementations ──────────────────────────────────────────────────
+// ── Clerk auth ────────────────────────────────────────────────────────────────
 
 function ClerkAuth() {
+  const { addListener } = useClerk();
+  const clearCart = useCartStore((s) => s.clearCart);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      // user becomes null when signed out
+      if (!user) clearCart();
+    });
+    return () => unsubscribe();
+  }, [addListener, clearCart]);
+
   return (
     <>
       <ClerkSignedIn>
@@ -250,21 +237,26 @@ function ClerkAuth() {
   );
 }
 
+// ── Auth0 auth ────────────────────────────────────────────────────────────────
+
 function Auth0Auth() {
   const status = useAuthUserStore(selectAuthStatus);
   const user = useAuthUserStore(selectUser);
   const isAuthenticated = useAuthUserStore(selectIsAuthenticated);
   const logout = useAuthUserStore((s) => s.logout);
+  const clearCart = useCartStore((s) => s.clearCart);
 
   if (status === "loading") return <AuthSkeleton />;
 
   if (isAuthenticated && user) {
     return (
       <Auth0UserMenu
-        picture={undefined} // Auth0 /auth/me response has no picture field
+        picture={undefined}
         name={user.name}
         onLogout={() => {
+          clearCart();
           logout();
+          window.location.href = "/";
         }}
       />
     );

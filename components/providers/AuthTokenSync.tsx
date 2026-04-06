@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useAuthUserStore } from "@/lib/store/auth-user.store";
 import { getAuthMe } from "@/lib/api/auth";
@@ -12,7 +12,7 @@ import type { AuthProviderName } from "@/lib/api/auth";
 function ClerkTokenSync() {
   const { getToken, isSignedIn, userId } = useAuth();
 
-  useEffect(() => {
+  const syncToken = useCallback(async () => {
     if (!isSignedIn || !userId) {
       useAuthUserStore.setState({
         accessToken: null,
@@ -23,27 +23,32 @@ function ClerkTokenSync() {
       return;
     }
 
-    getToken().then(async (token) => {
-      if (!token) return;
-      try {
-        const user = await getAuthMe(token);
-        useAuthUserStore.setState({
-          accessToken: token,
-          user,
-          status: "authenticated",
-          error: null,
-        });
-      } catch {
-        // Fallback — store token without full user info
-        useAuthUserStore.setState({
-          accessToken: token,
-          user: { userId, email: "", name: "", role: "user" },
-          status: "authenticated",
-          error: null,
-        });
-      }
-    });
+    // getToken() always returns a fresh valid token — Clerk handles refresh internally
+    const token = await getToken();
+    if (!token) return;
+
+    try {
+      const user = await getAuthMe(token);
+      useAuthUserStore.setState({
+        accessToken: token,
+        user,
+        status: "authenticated",
+        error: null,
+      });
+    } catch {
+      useAuthUserStore.setState({
+        accessToken: token,
+        user: { userId, email: "", name: "", role: "user" },
+        status: "authenticated",
+        error: null,
+      });
+    }
   }, [isSignedIn, userId, getToken]);
+
+  // Sync on sign-in/out change
+  useEffect(() => {
+    syncToken();
+  }, [syncToken]);
 
   return null;
 }

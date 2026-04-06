@@ -64,11 +64,43 @@ export class ApiError extends Error {
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
 
+async function resolveToken(accessToken: string): Promise<string> {
+  if (typeof window === "undefined") return accessToken;
+
+  try {
+    const { useAuthProviderStore } =
+      await import("@/lib/store/auth-provider.store");
+    const provider = useAuthProviderStore.getState().active;
+
+    if (provider === "clerk") {
+      type ClerkWindow = Window & {
+        Clerk?: { session?: { getToken: () => Promise<string | null> } };
+      };
+      const fresh = await (window as ClerkWindow).Clerk?.session?.getToken();
+      if (fresh) {
+        const { useAuthUserStore } =
+          await import("@/lib/store/auth-user.store");
+        useAuthUserStore.setState({ accessToken: fresh });
+        return fresh;
+      }
+    }
+  } catch {
+    // fallback to stored token
+  }
+
+  return accessToken;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, accessToken, next, signal } = options;
+  const { method = "GET", body, next, signal } = options;
+  let { accessToken } = options;
+
+  if (accessToken) {
+    accessToken = await resolveToken(accessToken);
+  }
 
   const headers: HeadersInit = {
     Accept: "application/json",

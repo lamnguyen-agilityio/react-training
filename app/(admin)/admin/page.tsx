@@ -1,10 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, ShoppingCart, TrendingUp, Loader2, AlertTriangle } from "lucide-react";
+import {
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { StatCard, LowStockAlert, RecentOrders } from "@/components/admin";
-import { useAuthProviderStore, selectActiveProvider } from "@/lib/store/auth-provider.store";
-import { useAuthUserStore, selectAccessToken } from "@/lib/store/auth-user.store";
+import {
+  useAuthProviderStore,
+  selectActiveProvider,
+} from "@/lib/store/auth-provider.store";
+import {
+  useAuthUserStore,
+  selectAccessToken,
+} from "@/lib/store/auth-user.store";
 import { authFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { ClerkSignOutTrigger } from "@/components/providers/ClerkSignOutTrigger";
@@ -20,7 +32,13 @@ interface ConfirmDialogProps {
   loading: boolean;
 }
 
-function ConfirmDialog({ from, to, onConfirm, onCancel, loading }: ConfirmDialogProps) {
+function ConfirmDialog({
+  from,
+  to,
+  onConfirm,
+  onCancel,
+  loading,
+}: ConfirmDialogProps) {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   return (
@@ -34,20 +52,33 @@ function ConfirmDialog({ from, to, onConfirm, onCancel, loading }: ConfirmDialog
         </h2>
         <p className="mt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">
           This will switch from{" "}
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">{cap(from)}</span>
-          {" "}to{" "}
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">{cap(to)}</span>
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            {cap(from)}
+          </span>{" "}
+          to{" "}
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            {cap(to)}
+          </span>
           . You will be logged out and need to sign in again.
         </p>
         <div className="mt-6 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading}>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancel
           </Button>
           <Button className="flex-1" onClick={onConfirm} disabled={loading}>
-            {loading
-              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Switching...</>
-              : "Confirm"
-            }
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Switching...
+              </>
+            ) : (
+              "Confirm"
+            )}
           </Button>
         </div>
       </div>
@@ -58,12 +89,13 @@ function ConfirmDialog({ from, to, onConfirm, onCancel, loading }: ConfirmDialog
 // ── Provider Switch ───────────────────────────────────────────────────────────
 
 function ProviderSwitch() {
-  const active      = useAuthProviderStore(selectActiveProvider);
+  const active = useAuthProviderStore(selectActiveProvider);
   const accessToken = useAuthUserStore(selectAccessToken);
-  const logout      = useAuthUserStore((s) => s.logout);
+  const logout = useAuthUserStore((s) => s.logout);
 
-  const [pendingProvider, setPendingProvider] = useState<AuthProviderName | null>(null);
-  const [switching, setSwitching]             = useState(false);
+  const [pendingProvider, setPendingProvider] =
+    useState<AuthProviderName | null>(null);
+  const [switching, setSwitching] = useState(false);
   // Trigger Clerk sign-out only when active === "clerk" and API call succeeded
   const [triggerClerkSignOut, setTriggerClerkSignOut] = useState(false);
 
@@ -77,11 +109,13 @@ function ProviderSwitch() {
 
     setSwitching(true);
     try {
-      const res = await authFetch<{ active: AuthProviderName; available: AuthProviderName[] }>(
-        "/auth/provider",
-        accessToken,
-        { method: "POST", body: { provider: pendingProvider } },
-      );
+      const res = await authFetch<{
+        active: AuthProviderName;
+        available: AuthProviderName[];
+      }>("/auth/provider", accessToken, {
+        method: "POST",
+        body: { provider: pendingProvider },
+      });
 
       // Update provider store + cookie
       useAuthProviderStore.setState({
@@ -123,11 +157,17 @@ function ProviderSwitch() {
     <>
       {/* Clerk sign-out trigger — only mounted when active === "clerk" and switch confirmed */}
       {triggerClerkSignOut && (
-        <ClerkSignOutTrigger onDone={() => { window.location.href = "/"; }} />
+        <ClerkSignOutTrigger
+          onDone={() => {
+            window.location.href = "/";
+          }}
+        />
       )}
 
       <div className="flex items-center gap-2">
-        {switching && <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />}
+        {switching && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+        )}
         <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800">
           {providers.map((p) => {
             const isActive = active === p.id;
@@ -141,7 +181,9 @@ function ProviderSwitch() {
                   isActive
                     ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-950 dark:text-zinc-100"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200",
-                  switching && !isActive ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                  switching && !isActive
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer",
                 ].join(" ")}
               >
                 {p.label}
@@ -182,9 +224,25 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Total Products"  icon={Package}       documentType="products" href="/admin/inventory" />
-        <StatCard title="Total Orders"    icon={ShoppingCart}  documentType="orders"   href="/admin/orders" />
-        <StatCard title="Low Stock Items" icon={TrendingUp}    documentType="products" warningStock={5} href="/admin/inventory" />
+        <StatCard
+          title="Total Products"
+          icon={Package}
+          documentType="products"
+          href="/admin/inventory"
+        />
+        <StatCard
+          title="Total Orders"
+          icon={ShoppingCart}
+          documentType="orders"
+          href="/admin/orders"
+        />
+        <StatCard
+          title="Low Stock Items"
+          icon={TrendingUp}
+          documentType="products"
+          warningStock={5}
+          href="/admin/inventory"
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

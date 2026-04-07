@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ShoppingBag, AlertTriangle, Loader2 } from "lucide-react";
@@ -14,10 +15,15 @@ import {
 import { useCartStock } from "@/lib/hooks/useCartStock";
 
 export function CheckoutClient() {
-  const items = useCartItems();
+  const items      = useCartItems();
   const totalPrice = useTotalPrice();
   const totalItems = useTotalItems();
-  const { stockMap, isLoading, hasStockIssues } = useCartStock(items);
+  const { stockMap, isLoading, hasStockIssues, refetch } = useCartStock(items);
+
+  // Called by CheckoutButton on error — re-check all stock
+  const handleCheckoutError = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   if (items.length === 0) {
     return (
@@ -49,9 +55,7 @@ export function CheckoutClient() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Continue Shopping
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-          Checkout
-        </h1>
+        <h1 className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">Checkout</h1>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-5">
@@ -68,10 +72,7 @@ export function CheckoutClient() {
             {hasStockIssues && !isLoading && (
               <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
-                <span>
-                  Some items have stock issues. Please update your cart before
-                  proceeding.
-                </span>
+                <span>Some items have stock issues. Please update your cart before proceeding.</span>
               </div>
             )}
 
@@ -79,9 +80,7 @@ export function CheckoutClient() {
             {isLoading && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
-                <span className="ml-2 text-sm text-zinc-500">
-                  Verifying stock...
-                </span>
+                <span className="ml-2 text-sm text-zinc-500">Verifying stock...</span>
               </div>
             )}
 
@@ -89,46 +88,27 @@ export function CheckoutClient() {
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {items.map((item) => {
                 const stockInfo = stockMap.get(item.productId);
-                const hasIssue =
-                  stockInfo?.isOutOfStock || stockInfo?.exceedsStock;
+                const hasIssue  = stockInfo?.isOutOfStock || stockInfo?.exceedsStock;
 
                 return (
                   <div
                     key={item.productId}
-                    className={`flex gap-4 px-6 py-4 ${
-                      hasIssue ? "bg-red-50 dark:bg-red-950/20" : ""
-                    }`}
+                    className={`flex gap-4 px-6 py-4 ${hasIssue ? "bg-red-50 dark:bg-red-950/20" : ""}`}
                   >
-                    {/* Image */}
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
                       {item.image ? (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                        />
+                        <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-zinc-400">
-                          No image
-                        </div>
+                        <div className="flex h-full items-center justify-center text-xs text-zinc-400">No image</div>
                       )}
                     </div>
 
-                    {/* Details */}
                     <div className="flex flex-1 flex-col justify-between">
                       <div>
-                        <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {item.name}
-                        </h3>
-                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                          Qty: {item.quantity}
-                        </p>
+                        <h3 className="font-medium text-zinc-900 dark:text-zinc-100">{item.name}</h3>
+                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Qty: {item.quantity}</p>
                         {stockInfo?.isOutOfStock && (
-                          <p className="mt-1 text-sm font-medium text-red-600">
-                            Out of stock
-                          </p>
+                          <p className="mt-1 text-sm font-medium text-red-600">Out of stock</p>
                         )}
                         {stockInfo?.exceedsStock && !stockInfo.isOutOfStock && (
                           <p className="mt-1 text-sm font-medium text-amber-600">
@@ -138,15 +118,12 @@ export function CheckoutClient() {
                       </div>
                     </div>
 
-                    {/* Price */}
                     <div className="text-right">
                       <p className="font-medium text-zinc-900 dark:text-zinc-100">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                       {item.quantity > 1 && (
-                        <p className="text-sm text-zinc-500">
-                          {formatPrice(item.price)} each
-                        </p>
+                        <p className="text-sm text-zinc-500">{formatPrice(item.price)} each</p>
                       )}
                     </div>
                   </div>
@@ -159,41 +136,30 @@ export function CheckoutClient() {
         {/* Order Total & Checkout */}
         <div className="lg:col-span-2">
           <div className="sticky top-24 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
-              Payment Summary
-            </h2>
+            <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Payment Summary</h2>
 
             <div className="mt-6 space-y-4">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Subtotal
-                </span>
-                <span className="text-zinc-900 dark:text-zinc-100">
-                  {formatPrice(totalPrice)}
-                </span>
+                <span className="text-zinc-500 dark:text-zinc-400">Subtotal</span>
+                <span className="text-zinc-900 dark:text-zinc-100">{formatPrice(totalPrice)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Shipping
-                </span>
-                <span className="text-zinc-900 dark:text-zinc-100">
-                  Calculated at checkout
-                </span>
+                <span className="text-zinc-500 dark:text-zinc-400">Shipping</span>
+                <span className="text-zinc-900 dark:text-zinc-100">Calculated at checkout</span>
               </div>
               <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
                 <div className="flex justify-between text-base font-semibold">
-                  <span className="text-zinc-900 dark:text-zinc-100">
-                    Total
-                  </span>
-                  <span className="text-zinc-900 dark:text-zinc-100">
-                    {formatPrice(totalPrice)}
-                  </span>
+                  <span className="text-zinc-900 dark:text-zinc-100">Total</span>
+                  <span className="text-zinc-900 dark:text-zinc-100">{formatPrice(totalPrice)}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-6">
-              <CheckoutButton disabled={hasStockIssues || isLoading} />
+              <CheckoutButton
+                disabled={hasStockIssues || isLoading}
+                onError={handleCheckoutError}
+              />
             </div>
 
             <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">

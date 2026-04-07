@@ -5,16 +5,14 @@ import { Loader2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createCheckoutSession } from "@/lib/actions/checkout";
-import {
-  useAuthUserStore,
-  selectAccessToken,
-} from "@/lib/store/auth-user.store";
+import { useAuthUserStore, selectAccessToken } from "@/lib/store/auth-user.store";
 
 interface CheckoutButtonProps {
   disabled?: boolean;
+  onError?: () => void;
 }
 
-export function CheckoutButton({ disabled }: CheckoutButtonProps) {
+export function CheckoutButton({ disabled, onError }: CheckoutButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const accessToken = useAuthUserStore(selectAccessToken);
@@ -23,14 +21,13 @@ export function CheckoutButton({ disabled }: CheckoutButtonProps) {
     setError(null);
     startTransition(async () => {
       const result = await createCheckoutSession(accessToken ?? "");
-
       if (result.success && result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {
-        setError(result.error ?? "Checkout failed");
-        toast.error("Checkout Error", {
-          description: result.error ?? "Something went wrong",
-        });
+        const msg = result.error ?? "Checkout failed";
+        setError(msg);
+        toast.error("Checkout Error", { description: msg });
+        onError?.();
       }
     });
   };
@@ -44,22 +41,13 @@ export function CheckoutButton({ disabled }: CheckoutButtonProps) {
         className="w-full"
       >
         {isPending ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Processing...
-          </>
+          <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Processing...</>
         ) : (
-          <>
-            <CreditCard className="mr-2 h-5 w-5" />
-            Pay with Stripe
-          </>
+          <><CreditCard className="mr-2 h-5 w-5" />Pay with Stripe</>
         )}
       </Button>
-
       {error && (
-        <p className="text-center text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
+        <p className="text-center text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
   );

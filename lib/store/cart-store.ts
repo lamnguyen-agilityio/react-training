@@ -132,6 +132,9 @@ export const createCartStore = (initState: CartState = defaultInitState) => {
         // ── addItem ──────────────────────────────────────────────────────────
         addItem: (item, quantity = 1) => {
           const accessToken = useAuthUserStore.getState().accessToken;
+          const prevQty =
+            get().items.find((i) => i.productId === item.productId)?.quantity ??
+            0;
 
           // 1. Optimistic update immediately
           set((state) => {
@@ -152,15 +155,14 @@ export const createCartStore = (initState: CartState = defaultInitState) => {
 
           if (!accessToken) return;
 
+          const newQty = prevQty + quantity; // absolute new quantity
+          const delta = newQty - prevQty; // how much to tell BE to add
           const version = nextVersion(item.productId);
-          const optimisticQty =
-            get().items.find((i) => i.productId === item.productId)?.quantity ??
-            quantity;
           const snapshot = get().items;
 
-          // 2. Fire API immediately, ignore stale responses
+          // Pass delta so BE accumulates correctly: oldQty + delta = newQty
           addCartItem(
-            { productId: item.productId, quantity: optimisticQty },
+            { productId: item.productId, quantity: delta },
             accessToken,
           )
             .then((response) => {
